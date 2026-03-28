@@ -18,7 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { StaffBadge, StaffSelect } from "@/components/staff/ui";
+import { StaffBadge, StaffSearchSelect, StaffSelect } from "@/components/staff/ui";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { AnimatedUIButton } from "@/components/ui/custom/Buttons";
@@ -49,6 +49,8 @@ type MediaUploadDialogProps = {
   onOpenChange: (open: boolean) => void;
   isUploading: boolean;
   storage: MediaListResult["storage"] | null;
+  folderOptions: MediaListResult["folderOptions"];
+  initialFolderId: number | null;
   onUploadMany: (
     inputs: MediaUploadRequest[],
     callbacks?: MediaUploadBatchCallbacks,
@@ -60,6 +62,8 @@ export default function MediaUploadDialog({
   onOpenChange,
   isUploading,
   storage,
+  folderOptions,
+  initialFolderId,
   onUploadMany,
 }: MediaUploadDialogProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -68,6 +72,9 @@ export default function MediaUploadDialog({
   const [altText, setAltText] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<MediaVisibility>("PRIVATE");
+  const [folderId, setFolderId] = useState(
+    initialFolderId != null ? String(initialFolderId) : "",
+  );
 
   const reset = () => {
     setItems([]);
@@ -75,6 +82,7 @@ export default function MediaUploadDialog({
     setAltText("");
     setDescription("");
     setVisibility("PRIVATE");
+    setFolderId(initialFolderId != null ? String(initialFolderId) : "");
 
     if (inputRef.current) {
       inputRef.current.value = "";
@@ -193,6 +201,7 @@ export default function MediaUploadDialog({
       altText: hasSingleFile ? altText : undefined,
       description: hasSingleFile ? description : undefined,
       visibility,
+      folderId: folderId ? Number(folderId) : null,
     }));
 
     const result = await onUploadMany(inputs, {
@@ -314,6 +323,12 @@ export default function MediaUploadDialog({
                   >
                     {visibility === "PUBLIC" ? "Public" : "Prive"}
                   </StaffBadge>
+                  <StaffBadge size="md" color="default" className="bg-white">
+                    {folderId
+                      ? folderOptions.find((option) => option.id === Number(folderId))
+                          ?.pathLabel ?? "Dossier"
+                      : "Racine"}
+                  </StaffBadge>
                 </div>
               </CardContent>
             </Card>
@@ -329,7 +344,7 @@ export default function MediaUploadDialog({
             <Card className="rounded-[2rem] border border-slate-200 py-0 ring-0">
               <CardHeader className="border-b border-slate-200 px-5 py-4">
                 <CardTitle className="text-base text-cobam-dark-blue">
-                  Resume de l&apos;import
+                  Résumé de l&apos;import
                 </CardTitle>
                 <CardDescription>
                   L&apos;envoi se fait fichier par fichier pour garder un import stable.
@@ -398,7 +413,26 @@ export default function MediaUploadDialog({
                     Ces champs s&apos;appliquent uniquement quand un seul fichier est importe.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 px-5 py-5">
+              <CardContent className="space-y-4 px-5 py-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-cobam-dark-blue">
+                    Dossier cible
+                  </label>
+                  <StaffSearchSelect
+                    value={folderId}
+                    onValueChange={setFolderId}
+                    options={folderOptions.map((option) => ({
+                      value: String(option.id),
+                      label: option.pathLabel,
+                    }))}
+                    emptyLabel="Racine"
+                    placeholder="Choisir un dossier"
+                    searchPlaceholder="Rechercher un dossier..."
+                    noResultsLabel="Aucun dossier disponible"
+                    fullWidth
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-cobam-dark-blue">
                     Visibilite initiale
@@ -414,7 +448,7 @@ export default function MediaUploadDialog({
                   />
                   <p className="text-xs leading-5 text-slate-500">
                     Les fichiers publics pourront etre servis depuis le site sans
-                    jeton d&apos;acces.
+                    jeton d&apos;accès.
                   </p>
                 </div>
 
@@ -468,6 +502,13 @@ export default function MediaUploadDialog({
                     Les nouveaux fichiers sont importes en mode{" "}
                     <span className="font-medium text-slate-700">
                       {visibility === "PUBLIC" ? "public" : "prive"}
+                    </span>
+                    {" "}dans{" "}
+                    <span className="font-medium text-slate-700">
+                      {folderId
+                        ? folderOptions.find((option) => option.id === Number(folderId))
+                            ?.pathLabel ?? "le dossier selectionne"
+                        : "la racine"}
                     </span>
                     .
                   </p>

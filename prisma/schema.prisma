@@ -59,6 +59,42 @@ enum BrandShowcasePlacement {
   PARTNER
 }
 
+enum ProductLifecycleStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum ProductVisibility {
+  HIDDEN
+  PUBLIC
+}
+
+enum ProductCommercialMode {
+  REFERENCE_ONLY
+  QUOTE_ONLY
+  SELLABLE
+}
+
+enum ProductPriceVisibility {
+  HIDDEN
+  VISIBLE
+}
+
+enum ProductAttributeScope {
+  FAMILY
+  VARIANT
+}
+
+enum ProductAttributeDataType {
+  TEXT
+  NUMBER
+  BOOLEAN
+  ENUM
+  COLOR
+  JSON
+}
+
 enum AuditActionType {
   CREATE
   UPDATE
@@ -93,14 +129,14 @@ model User {
   createdAt         DateTime   @default(now()) @map("created_at")
   updatedAt         DateTime   @updatedAt @map("updated_at")
 
-  refreshTokens      RefreshToken[]
-  uploadedMedia      Media[]             @relation("MediaUploadedByUser")
-  articles           Article[]           @relation("ArticleAuthor")
-  articleAuthorLinks ArticleAuthorLink[]
-  createdArticleCategories ArticleCategory[] @relation("ArticleCategoryCreatedByUser")
-  updatedArticleCategories ArticleCategory[] @relation("ArticleCategoryUpdatedByUser")
-  auditLogs          AuditLog[]          @relation("AuditActor")
-  profile            StaffProfile?
+  refreshTokens            RefreshToken[]
+  uploadedMedia            Media[]             @relation("MediaUploadedByUser")
+  articles                 Article[]           @relation("ArticleAuthor")
+  articleAuthorLinks       ArticleAuthorLink[]
+  createdArticleCategories ArticleCategory[]   @relation("ArticleCategoryCreatedByUser")
+  updatedArticleCategories ArticleCategory[]   @relation("ArticleCategoryUpdatedByUser")
+  auditLogs                AuditLog[]          @relation("AuditActor")
+  profile                  StaffProfile?
 
   receivedRoleAssignments UserRoleAssignment[] @relation("RoleAssignmentTarget")
   grantedRoleAssignments  UserRoleAssignment[] @relation("RoleAssignmentGrantedBy")
@@ -233,8 +269,8 @@ model ProductBrand {
   createdAt         DateTime               @default(now()) @map("created_at")
   updatedAt         DateTime               @updatedAt @map("updated_at")
 
-  logoMedia     Media?         @relation("BrandLogoMedia", fields: [logoMediaId], references: [id], onDelete: SetNull)
-  productModels ProductModel[]
+  logoMedia       Media?                      @relation("BrandLogoMedia", fields: [logoMediaId], references: [id], onDelete: SetNull)
+  productFamilies ProductFamily[]
 
   @@index([logoMediaId])
   @@index([showcasePlacement])
@@ -245,7 +281,6 @@ model ProductBrand {
 
 model ProductCategory {
   id             BigInt   @id @default(autoincrement())
-  parentId       BigInt?  @map("parent_id")
   name           String   @db.VarChar(255)
   subtitle       String?  @db.VarChar(255)
   slug           String   @unique @db.VarChar(255)
@@ -257,16 +292,40 @@ model ProductCategory {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  parent     ProductCategory?  @relation("ProductTypeHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  imageMedia Media?            @relation("ProductCategoryImageMedia", fields: [imageMediaId], references: [id], onDelete: SetNull)
-  children   ProductCategory[] @relation("ProductTypeHierarchy")
-
-  productModels ProductModel[]
+  imageMedia     Media?                 @relation("ProductCategoryImageMedia", fields: [imageMediaId], references: [id], onDelete: SetNull)
+  subcategories  ProductSubcategory[]
+  attributeLinks ProductCategoryAttributeLink[]
 
   @@index([imageMediaId])
   @@index([sortOrder])
   @@index([isActive])
   @@map("product_types")
+}
+
+model ProductSubcategory {
+  id             BigInt   @id @default(autoincrement())
+  categoryId     BigInt   @map("category_id")
+  name           String   @db.VarChar(255)
+  subtitle       String?  @db.VarChar(255)
+  slug           String   @db.VarChar(255)
+  description    String?  @db.Text
+  descriptionSeo String?  @map("description_seo") @db.Text
+  imageMediaId   BigInt?  @map("image_media_id")
+  sortOrder      Int      @default(0) @map("sort_order")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  category        ProductCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  imageMedia      Media?           @relation("ProductSubcategoryImageMedia", fields: [imageMediaId], references: [id], onDelete: SetNull)
+  productFamilies ProductFamily[]  @relation("ProductFamilySubcategories")
+
+  @@unique([categoryId, slug])
+  @@index([categoryId])
+  @@index([imageMediaId])
+  @@index([sortOrder])
+  @@index([isActive])
+  @@map("product_subcategories")
 }
 
 model Tag {
@@ -276,167 +335,259 @@ model Tag {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  productModelLinks ProductModelTagLink[]
-  articleLinks      ArticleTagLink[]
+  productFamilyLinks ProductFamilyTagLink[]
+  articleLinks       ArticleTagLink[]
 
   @@map("tags")
 }
 
-model Color {
+model ProductFamily {
+  id               BigInt                 @id @default(autoincrement())
+  brandId          BigInt?                @map("brand_id")
+  defaultVariantId BigInt?                @map("default_variant_id")
+  name             String                 @db.VarChar(255)
+  slug             String                 @unique @db.VarChar(255)
+  subtitle         String?                @db.VarChar(255)
+  excerpt          String?                @db.Text
+  description      String?                @db.Text
+  descriptionSeo   String?                @map("description_seo") @db.Text
+  lifecycleStatus  ProductLifecycleStatus @default(DRAFT) @map("lifecycle_status")
+  visibility       ProductVisibility      @default(HIDDEN)
+  isPromoted       Boolean                @default(false) @map("is_promoted")
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+
+  brand           ProductBrand?                 @relation(fields: [brandId], references: [id], onDelete: Restrict)
+  subcategories   ProductSubcategory[]          @relation("ProductFamilySubcategories")
+  defaultVariant  ProductVariant?               @relation("ProductFamilyDefaultVariant", fields: [defaultVariantId], references: [id], onDelete: SetNull)
+  variants        ProductVariant[]              @relation("ProductFamilyVariants")
+  tagLinks        ProductFamilyTagLink[]
+  mediaLinks      ProductFamilyMediaLink[]
+  attributeValues ProductFamilyAttributeValue[]
+  collectionLinks ProductCollectionFamilyLink[]
+
+  @@unique([brandId, name])
+  @@index([brandId])
+  @@index([defaultVariantId])
+  @@index([lifecycleStatus])
+  @@index([visibility])
+  @@index([isPromoted])
+  @@map("product_families")
+}
+
+model ProductVariant {
+  id              BigInt                 @id @default(autoincrement())
+  familyId        BigInt                 @map("family_id")
+  sku             String                 @unique @db.VarChar(255)
+  slug            String                 @unique @db.VarChar(255)
+  title           String                 @db.VarChar(255)
+  subtitle        String?                @db.VarChar(255)
+  description     String?                @db.Text
+  lifecycleStatus ProductLifecycleStatus @default(DRAFT) @map("lifecycle_status")
+  visibility      ProductVisibility      @default(HIDDEN)
+  commercialMode  ProductCommercialMode  @default(REFERENCE_ONLY) @map("commercial_mode")
+  priceVisibility ProductPriceVisibility @default(HIDDEN) @map("price_visibility")
+  isPromoted      Boolean                @default(false) @map("is_promoted")
+  currencyCode    String                 @default("EUR") @map("currency_code") @db.Char(3)
+  basePriceAmount Decimal?               @map("base_price_amount") @db.Decimal(12, 2)
+  currentPriceAmount Decimal?            @map("current_price_amount") @db.Decimal(12, 2)
+  sortOrder       Int                    @default(0) @map("sort_order")
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+
+  family             ProductFamily                  @relation("ProductFamilyVariants", fields: [familyId], references: [id], onDelete: Cascade)
+  defaultForFamilies ProductFamily[]                @relation("ProductFamilyDefaultVariant")
+  mediaLinks         ProductVariantMediaLink[]
+  attributeValues    ProductVariantAttributeValue[]
+  collectionLinks    ProductCollectionVariantLink[]
+
+  @@index([familyId])
+  @@index([lifecycleStatus])
+  @@index([visibility])
+  @@index([commercialMode])
+  @@index([priceVisibility])
+  @@index([isPromoted])
+  @@map("product_variants")
+}
+
+model ProductFamilyTagLink {
+  familyId BigInt @map("family_id")
+  tagId    BigInt @map("tag_id")
+
+  family ProductFamily @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  tag    Tag           @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([familyId, tagId])
+  @@index([tagId])
+  @@map("product_family_tag_links")
+}
+
+model ProductFamilyMediaLink {
+  familyId  BigInt        @map("family_id")
+  mediaId   BigInt        @map("media_id")
+  role      MediaLinkRole
+  sortOrder Int           @default(0) @map("sort_order")
+
+  family ProductFamily @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  media  Media         @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@id([familyId, mediaId])
+  @@index([mediaId])
+  @@map("product_family_media_links")
+}
+
+model ProductVariantMediaLink {
+  variantId BigInt        @map("variant_id")
+  mediaId   BigInt        @map("media_id")
+  role      MediaLinkRole
+  sortOrder Int           @default(0) @map("sort_order")
+
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  media   Media          @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@id([variantId, mediaId])
+  @@index([mediaId])
+  @@map("product_variant_media_links")
+}
+
+model ProductCollection {
   id          BigInt   @id @default(autoincrement())
   name        String   @db.VarChar(255)
-  displayName String   @map("display_name") @db.VarChar(255)
   slug        String   @unique @db.VarChar(255)
-  hex         String?  @db.VarChar(32)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  products Product[]
-
-  @@map("colors")
-}
-
-model Material {
-  id          BigInt   @id @default(autoincrement())
-  fullname    String   @db.VarChar(255)
-  displayName String   @map("display_name") @db.VarChar(255)
   description String?  @db.Text
-  color       String?  @db.VarChar(255)
-  type        String?  @db.VarChar(255)
-  slug        String   @unique @db.VarChar(255)
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  products Product[]
+  familyLinks    ProductCollectionFamilyLink[]
+  variantLinks   ProductCollectionVariantLink[]
 
-  @@map("materials")
+  @@index([sortOrder])
+  @@index([isActive])
+  @@map("product_collections")
 }
 
-model Finish {
-  id        BigInt   @id @default(autoincrement())
-  name      String   @db.VarChar(255)
-  slug      String   @unique @db.VarChar(255)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+model ProductCollectionFamilyLink {
+  collectionId BigInt @map("collection_id")
+  familyId     BigInt @map("family_id")
+  sortOrder    Int    @default(0) @map("sort_order")
 
-  products Product[]
+  collection ProductCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  family     ProductFamily     @relation(fields: [familyId], references: [id], onDelete: Cascade)
 
-  @@map("finishes")
+  @@id([collectionId, familyId])
+  @@index([familyId])
+  @@map("product_collection_family_links")
 }
 
-model Size {
-  id        BigInt   @id @default(autoincrement())
-  label     String   @unique @db.VarChar(255)
-  widthMm   Int?     @map("width_mm")
-  depthMm   Int?     @map("depth_mm")
-  heightMm  Int?     @map("height_mm")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+model ProductCollectionVariantLink {
+  collectionId BigInt @map("collection_id")
+  variantId    BigInt @map("variant_id")
+  sortOrder    Int    @default(0) @map("sort_order")
 
-  products Product[]
+  collection ProductCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  variant    ProductVariant    @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
-  @@map("sizes")
+  @@id([collectionId, variantId])
+  @@index([variantId])
+  @@map("product_collection_variant_links")
 }
 
-model ProductModel {
-  id             BigInt   @id @default(autoincrement())
-  brandId        BigInt   @map("brand_id")
-  productTypeId  BigInt   @map("product_type_id")
-  baseName       String   @map("base_name") @db.VarChar(255)
-  baseSlug       String   @unique @map("base_slug") @db.VarChar(255)
-  description    String?  @db.Text
-  descriptionSeo String?  @map("description_seo") @db.Text
-  isActive       Boolean  @default(true) @map("is_active")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+model ProductAttributeDefinition {
+  id            BigInt                   @id @default(autoincrement())
+  key           String                   @unique @db.VarChar(150)
+  name          String                   @db.VarChar(255)
+  slug          String                   @unique @db.VarChar(255)
+  description   String?                  @db.Text
+  scope         ProductAttributeScope
+  dataType      ProductAttributeDataType @map("data_type")
+  unit          String?                  @db.VarChar(50)
+  isFilterable  Boolean                  @default(false) @map("is_filterable")
+  isVariantAxis Boolean                  @default(false) @map("is_variant_axis")
+  sortOrder     Int                      @default(0) @map("sort_order")
+  createdAt     DateTime                 @default(now()) @map("created_at")
+  updatedAt     DateTime                 @updatedAt @map("updated_at")
 
-  brand       ProductBrand    @relation(fields: [brandId], references: [id], onDelete: Restrict)
-  productType ProductCategory @relation(fields: [productTypeId], references: [id], onDelete: Restrict)
+  options       ProductAttributeOption[]
+  categoryLinks ProductCategoryAttributeLink[]
+  familyValues  ProductFamilyAttributeValue[]
+  variantValues ProductVariantAttributeValue[]
 
-  products   Product[]
-  tagLinks   ProductModelTagLink[]
-  mediaLinks ProductModelMediaLink[]
-
-  @@unique([productTypeId, brandId, baseName])
-  @@index([brandId])
-  @@index([productTypeId])
-  @@map("product_models")
+  @@index([scope])
+  @@index([dataType])
+  @@index([sortOrder])
+  @@map("product_attribute_definitions")
 }
 
-model Product {
-  id                     BigInt   @id @default(autoincrement())
-  modelId                BigInt   @map("model_id")
-  code                   String   @unique @db.VarChar(255)
-  colorId                BigInt?  @map("color_id")
-  sizeId                 BigInt?  @map("size_id")
-  materialId             BigInt?  @map("material_id")
-  finishId               BigInt?  @map("finish_id")
-  widthMm                Int?     @map("width_mm")
-  depthMm                Int?     @map("depth_mm")
-  heightMm               Int?     @map("height_mm")
-  fullnameOverride       String?  @map("fullname_override") @db.VarChar(255)
-  displayNameOverride    String?  @map("display_name_override") @db.VarChar(255)
-  slugOverride           String?  @unique @map("slug_override") @db.VarChar(255)
-  descriptionOverride    String?  @map("description_override") @db.Text
-  descriptionSeoOverride String?  @map("description_seo_override") @db.Text
-  isActive               Boolean  @default(true) @map("is_active")
-  createdAt              DateTime @default(now()) @map("created_at")
-  updatedAt              DateTime @updatedAt @map("updated_at")
+model ProductAttributeOption {
+  id          BigInt   @id @default(autoincrement())
+  attributeId BigInt   @map("attribute_id")
+  value       String   @db.VarChar(255)
+  label       String   @db.VarChar(255)
+  colorHex    String?  @map("color_hex") @db.VarChar(32)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  model    ProductModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
-  color    Color?       @relation(fields: [colorId], references: [id], onDelete: SetNull)
-  size     Size?        @relation(fields: [sizeId], references: [id], onDelete: SetNull)
-  material Material?    @relation(fields: [materialId], references: [id], onDelete: SetNull)
-  finish   Finish?      @relation(fields: [finishId], references: [id], onDelete: SetNull)
+  attribute     ProductAttributeDefinition     @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  familyValues  ProductFamilyAttributeValue[]
+  variantValues ProductVariantAttributeValue[]
 
-  mediaLinks ProductMediaLink[]
-
-  @@index([modelId])
-  @@index([colorId])
-  @@index([sizeId])
-  @@index([materialId])
-  @@index([finishId])
-  @@map("products")
+  @@unique([attributeId, value])
+  @@index([sortOrder])
+  @@map("product_attribute_options")
 }
 
-model ProductModelTagLink {
-  modelId BigInt @map("model_id")
-  tagId   BigInt @map("tag_id")
+model ProductCategoryAttributeLink {
+  categoryId  BigInt  @map("category_id")
+  attributeId BigInt  @map("attribute_id")
+  isRequired  Boolean @default(false) @map("is_required")
+  sortOrder   Int     @default(0) @map("sort_order")
 
-  model ProductModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
-  tag   Tag          @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  category  ProductCategory            @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  attribute ProductAttributeDefinition @relation(fields: [attributeId], references: [id], onDelete: Cascade)
 
-  @@id([modelId, tagId])
-  @@index([tagId])
-  @@map("product_model_tag_links")
+  @@id([categoryId, attributeId])
+  @@index([attributeId])
+  @@index([sortOrder])
+  @@map("product_category_attribute_links")
 }
 
-model ProductModelMediaLink {
-  modelId   BigInt        @map("model_id")
-  mediaId   BigInt        @map("media_id")
-  role      MediaLinkRole
-  sortOrder Int           @default(0) @map("sort_order")
+model ProductFamilyAttributeValue {
+  familyId     BigInt   @map("family_id")
+  attributeId  BigInt   @map("attribute_id")
+  optionId     BigInt?  @map("option_id")
+  valueText    String?  @map("value_text") @db.Text
+  valueNumber  Decimal? @map("value_number") @db.Decimal(18, 4)
+  valueBoolean Boolean? @map("value_boolean")
+  valueJson    Json?    @map("value_json")
 
-  model ProductModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
-  media Media        @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  family    ProductFamily              @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  attribute ProductAttributeDefinition @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  option    ProductAttributeOption?    @relation(fields: [optionId], references: [id], onDelete: SetNull)
 
-  @@id([modelId, mediaId])
-  @@index([mediaId])
-  @@map("product_model_media_links")
+  @@id([familyId, attributeId])
+  @@index([optionId])
+  @@map("product_family_attribute_values")
 }
 
-model ProductMediaLink {
-  productId BigInt        @map("product_id")
-  mediaId   BigInt        @map("media_id")
-  role      MediaLinkRole
-  sortOrder Int           @default(0) @map("sort_order")
+model ProductVariantAttributeValue {
+  variantId    BigInt   @map("variant_id")
+  attributeId  BigInt   @map("attribute_id")
+  optionId     BigInt?  @map("option_id")
+  valueText    String?  @map("value_text") @db.Text
+  valueNumber  Decimal? @map("value_number") @db.Decimal(18, 4)
+  valueBoolean Boolean? @map("value_boolean")
+  valueJson    Json?    @map("value_json")
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  media   Media   @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  variant   ProductVariant             @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  attribute ProductAttributeDefinition @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  option    ProductAttributeOption?    @relation(fields: [optionId], references: [id], onDelete: SetNull)
 
-  @@id([productId, mediaId])
-  @@index([mediaId])
-  @@map("product_media_links")
+  @@id([variantId, attributeId])
+  @@index([optionId])
+  @@map("product_variant_attribute_values")
 }
 
 model ArticleCategory {
@@ -450,15 +601,14 @@ model ArticleCategory {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  parent        ArticleCategory?  @relation("ArticleCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children      ArticleCategory[] @relation("ArticleCategoryHierarchy")
-  createdByUser User?             @relation("ArticleCategoryCreatedByUser", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  updatedByUser User?             @relation("ArticleCategoryUpdatedByUser", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  parent        ArticleCategory?      @relation("ArticleCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children      ArticleCategory[]     @relation("ArticleCategoryHierarchy")
+  createdByUser User?                 @relation("ArticleCategoryCreatedByUser", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  updatedByUser User?                 @relation("ArticleCategoryUpdatedByUser", fields: [updatedByUserId], references: [id], onDelete: SetNull)
   articleLinks  ArticleCategoryLink[]
 
   @@index([createdByUserId])
   @@index([updatedByUserId])
-
   @@map("article_categories")
 }
 
@@ -489,14 +639,14 @@ model Article {
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
 
-  author       User             @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: Restrict)
-  coverMedia   Media?           @relation("ArticleCoverMedia", fields: [coverMediaId], references: [id], onDelete: SetNull)
-  ogImageMedia Media?           @relation("ArticleOgImageMedia", fields: [ogImageMediaId], references: [id], onDelete: SetNull)
+  author       User   @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  coverMedia   Media? @relation("ArticleCoverMedia", fields: [coverMediaId], references: [id], onDelete: SetNull)
+  ogImageMedia Media? @relation("ArticleOgImageMedia", fields: [ogImageMediaId], references: [id], onDelete: SetNull)
 
   categoryLinks ArticleCategoryLink[]
-  authorLinks ArticleAuthorLink[]
-  tagLinks    ArticleTagLink[]
-  mediaLinks  ArticleMediaLink[]
+  authorLinks   ArticleAuthorLink[]
+  tagLinks      ArticleTagLink[]
+  mediaLinks    ArticleMediaLink[]
 
   @@index([authorId])
   @@index([coverMediaId])
@@ -506,10 +656,10 @@ model Article {
 }
 
 model ArticleCategoryLink {
-  articleId   BigInt   @map("article_id")
-  categoryId  BigInt   @map("category_id")
-  score       Int
-  createdAt   DateTime @default(now()) @map("created_at")
+  articleId  BigInt   @map("article_id")
+  categoryId BigInt   @map("category_id")
+  score      Int
+  createdAt  DateTime @default(now()) @map("created_at")
 
   article  Article         @relation(fields: [articleId], references: [id], onDelete: Cascade)
   category ArticleCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
@@ -558,8 +708,26 @@ model ArticleMediaLink {
   @@map("article_media_links")
 }
 
+model MediaFolder {
+  id              BigInt   @id @default(autoincrement())
+  parentId        BigInt?  @map("parent_id")
+  name            String   @db.VarChar(255)
+  createdByUserId String?  @map("created_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  parent   MediaFolder?  @relation("MediaFolderHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children MediaFolder[] @relation("MediaFolderHierarchy")
+  media    Media[]
+
+  @@index([parentId])
+  @@index([createdByUserId])
+  @@map("media_folders")
+}
+
 model Media {
   id               BigInt          @id @default(autoincrement())
+  folderId         BigInt?         @map("folder_id")
   kind             MediaKind
   visibility       MediaVisibility @default(PRIVATE)
   storagePath      String          @map("storage_path") @db.VarChar(500)
@@ -582,17 +750,20 @@ model Media {
   createdAt        DateTime        @default(now()) @map("created_at")
   updatedAt        DateTime        @updatedAt @map("updated_at")
 
-  uploadedByUser User? @relation("MediaUploadedByUser", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  folder         MediaFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  uploadedByUser User?        @relation("MediaUploadedByUser", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
 
-  productModelLinks       ProductModelMediaLink[]
-  productLinks            ProductMediaLink[]
-  brandLogoFor            ProductBrand[]          @relation("BrandLogoMedia")
-  productCategoryImageFor ProductCategory[]       @relation("ProductCategoryImageMedia")
-  staffProfileAvatarFor   StaffProfile[]          @relation("StaffProfileAvatarMedia")
-  articleCoverFor         Article[]               @relation("ArticleCoverMedia")
-  articleOgImageFor       Article[]               @relation("ArticleOgImageMedia")
-  articleMediaLinks       ArticleMediaLink[]
+  productFamilyLinks         ProductFamilyMediaLink[]
+  productVariantLinks        ProductVariantMediaLink[]
+  brandLogoFor               ProductBrand[]            @relation("BrandLogoMedia")
+  productCategoryImageFor    ProductCategory[]         @relation("ProductCategoryImageMedia")
+  productSubcategoryImageFor ProductSubcategory[]      @relation("ProductSubcategoryImageMedia")
+  staffProfileAvatarFor      StaffProfile[]            @relation("StaffProfileAvatarMedia")
+  articleCoverFor            Article[]                 @relation("ArticleCoverMedia")
+  articleOgImageFor          Article[]                 @relation("ArticleOgImageMedia")
+  articleMediaLinks          ArticleMediaLink[]
 
+  @@index([folderId])
   @@index([uploadedByUserId])
   @@index([deletedAt])
   @@map("media")

@@ -54,8 +54,8 @@ export async function findBrandById(brandId: number) {
   });
 }
 
-export async function countProductModelsForBrand(brandId: number) {
-  return prisma.productModel.count({
+export async function countProductFamiliesForBrand(brandId: number) {
+  return prisma.productFamily.count({
     where: {
       brandId: BigInt(brandId),
     },

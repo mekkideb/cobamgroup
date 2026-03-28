@@ -1,4 +1,21 @@
-import type { ProductCategoryCreateInput, ProductCategoryDetailDto } from "./types";
+import type {
+  ProductCategoryCreateInput,
+  ProductCategoryDetailDto,
+  ProductSubcategoryInput,
+} from "./types";
+
+export type ProductSubcategoryEditorState = {
+  formKey: string;
+  id: number | null;
+  name: string;
+  subtitle: string;
+  slug: string;
+  description: string;
+  descriptionSeo: string;
+  imageMediaId: number | null;
+  sortOrder: string;
+  isActive: boolean;
+};
 
 export type ProductCategoryEditorFormState = {
   name: string;
@@ -9,8 +26,29 @@ export type ProductCategoryEditorFormState = {
   imageMediaId: number | null;
   sortOrder: string;
   isActive: boolean;
-  parentId: string;
+  subcategories: ProductSubcategoryEditorState[];
 };
+
+function createFormKey() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function createEmptyProductSubcategoryEditorState(
+  overrides: Partial<ProductSubcategoryEditorState> = {},
+): ProductSubcategoryEditorState {
+  return {
+    formKey: overrides.formKey ?? createFormKey(),
+    id: overrides.id ?? null,
+    name: overrides.name ?? "",
+    subtitle: overrides.subtitle ?? "",
+    slug: overrides.slug ?? "",
+    description: overrides.description ?? "",
+    descriptionSeo: overrides.descriptionSeo ?? "",
+    imageMediaId: overrides.imageMediaId ?? null,
+    sortOrder: overrides.sortOrder ?? "0",
+    isActive: overrides.isActive ?? true,
+  };
+}
 
 export function createEmptyProductCategoryEditorFormState(): ProductCategoryEditorFormState {
   return {
@@ -22,8 +60,17 @@ export function createEmptyProductCategoryEditorFormState(): ProductCategoryEdit
     imageMediaId: null,
     sortOrder: "0",
     isActive: true,
-    parentId: "",
+    subcategories: [],
   };
+}
+
+export function reindexProductSubcategoryEditorStates(
+  subcategories: ProductSubcategoryEditorState[],
+): ProductSubcategoryEditorState[] {
+  return subcategories.map((subcategory, index) => ({
+    ...subcategory,
+    sortOrder: String(index),
+  }));
 }
 
 export function productCategoryDetailToFormState(
@@ -42,7 +89,46 @@ export function productCategoryDetailToFormState(
     imageMediaId: category.imageMediaId ?? null,
     sortOrder: String(category.sortOrder),
     isActive: category.isActive,
-    parentId: category.parentId != null ? String(category.parentId) : "",
+    subcategories: reindexProductSubcategoryEditorStates(
+      category.subcategories.map((subcategory, index) =>
+        createEmptyProductSubcategoryEditorState({
+          id: subcategory.id,
+          name: subcategory.name,
+          subtitle: subcategory.subtitle ?? "",
+          slug: subcategory.slug,
+          description: subcategory.description ?? "",
+          descriptionSeo: subcategory.descriptionSeo ?? "",
+          imageMediaId: subcategory.imageMediaId ?? null,
+          sortOrder: String(subcategory.sortOrder ?? index),
+          isActive: subcategory.isActive,
+        }),
+      ),
+    ),
+  };
+}
+
+function subcategoryEditorStateToPayload(
+  state: ProductSubcategoryEditorState,
+  index: number,
+): ProductSubcategoryInput {
+  const sortOrderRaw = state.sortOrder.trim();
+  const parsedSortOrder =
+    sortOrderRaw === ""
+      ? index
+      : Number.isInteger(Number(sortOrderRaw))
+        ? Number(sortOrderRaw)
+        : index;
+
+  return {
+    id: state.id,
+    name: state.name.trim(),
+    subtitle: state.subtitle.trim() || null,
+    slug: state.slug.trim(),
+    description: state.description.trim() || null,
+    descriptionSeo: state.descriptionSeo.trim() || null,
+    imageMediaId: state.imageMediaId,
+    sortOrder: parsedSortOrder,
+    isActive: state.isActive,
   };
 }
 
@@ -51,7 +137,11 @@ export function productCategoryEditorFormToPayload(
 ): ProductCategoryCreateInput {
   const sortOrderRaw = state.sortOrder.trim();
   const parsedSortOrder =
-    sortOrderRaw === "" ? 0 : Number.isInteger(Number(sortOrderRaw)) ? Number(sortOrderRaw) : 0;
+    sortOrderRaw === ""
+      ? 0
+      : Number.isInteger(Number(sortOrderRaw))
+        ? Number(sortOrderRaw)
+        : 0;
 
   return {
     name: state.name.trim(),
@@ -62,6 +152,6 @@ export function productCategoryEditorFormToPayload(
     imageMediaId: state.imageMediaId,
     sortOrder: parsedSortOrder,
     isActive: state.isActive,
-    parentId: state.parentId ? Number(state.parentId) : null,
+    subcategories: state.subcategories.map(subcategoryEditorStateToPayload),
   };
 }

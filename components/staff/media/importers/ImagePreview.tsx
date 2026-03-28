@@ -75,7 +75,7 @@ export default function ImagePreview({
       )}
       style={style}
     >
-      <ImageIcon className="text-slate-300 h-7 w-7" />
+      {fallback ?? <ImageIcon className="text-slate-300 h-7 w-7" />}
     </div>
   );
 }

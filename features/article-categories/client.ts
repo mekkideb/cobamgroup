@@ -126,7 +126,7 @@ export async function createArticleCategoryClient(
   if (!res.ok || !data?.ok || !data.category) {
     throw new ArticleCategoriesClientError(
       getErrorMessage(data) ||
-        "Erreur lors de la creation de la categorie d'articles",
+        "Erreur lors de la création de la catégorie d'articles",
       res.status,
     );
   }
@@ -150,7 +150,7 @@ export async function updateArticleCategoryClient(
   if (!res.ok || !data?.ok || !data.category) {
     throw new ArticleCategoriesClientError(
       getErrorMessage(data) ||
-        "Erreur lors de la mise a jour de la categorie d'articles",
+        "Erreur lors de la mise à jour de la catégorie d'articles",
       res.status,
     );
   }

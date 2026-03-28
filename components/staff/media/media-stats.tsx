@@ -5,7 +5,6 @@ import { formatBytes } from "./utils";
 
 type MediaStatsProps = {
   stats: MediaListResult["stats"] | null;
-  storage: MediaListResult["storage"] | null;
 };
 
 const statItems = [
@@ -31,7 +30,7 @@ const statItems = [
   },
 ] as const;
 
-export default function MediaStats({ stats, storage }: MediaStatsProps) {
+export default function MediaStats({ stats }: MediaStatsProps) {
   return (
     <Card className="overflow-hidden rounded-[2rem] border border-slate-200">
       <CardContent className="grid gap-5 px-5 md:grid-cols-[minmax(0,1.35fr)_minmax(0,2fr)] md:px-6">

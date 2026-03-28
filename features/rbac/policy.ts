@@ -87,7 +87,7 @@ export const DEFAULT_ROLE_SEED_DEFINITIONS: DefaultRoleSeedDefinition[] = [
     color: "#2563eb",
     priorityIndex: 40,
     description:
-      "Contributeur catalogue avec acces de creation et edition produit.",
+      "Contributeur catalogue avec accès de création et édition produit.",
     permissions: [
       PERMISSIONS.PRODUCTS_CREATE,
       PERMISSIONS.PRODUCTS_VIEW_ALL,
@@ -110,7 +110,7 @@ export const DEFAULT_ROLE_SEED_DEFINITIONS: DefaultRoleSeedDefinition[] = [
     color: "#be185d",
     priorityIndex: 40,
     description:
-      "Contributeur editorial avec acces a ses propres articles et contenus associes.",
+      "Contributeur éditorial avec accès à ses propres articles et contenus associés.",
     permissions: [
       PERMISSIONS.ARTICLES_CREATE,
       PERMISSIONS.ARTICLES_VIEW_ALL,

@@ -41,16 +41,16 @@ export default function SecurityPage() {
       const data = await res.json().catch(() => null);
 
       if (!res.ok || !data?.ok) {
-        throw new Error(data?.message || "Erreur lors de la mise a jour");
+        throw new Error(data?.message || "Erreur lors de la mise à jour");
       }
 
-      toast.success("Mot de passe mis a jour");
+      toast.success("Mot de passe mis à jour");
       setState({ currentPassword: "", newPassword: "", confirmation: "" });
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : "Erreur lors de la mise a jour";
+        err instanceof Error ? err.message : "Erreur lors de la mise à jour";
       setError(message);
-      toast.error("Erreur lors de la mise a jour", {
+      toast.error("Erreur lors de la mise à jour", {
         description: message,
       });
     } finally {
@@ -61,7 +61,7 @@ export default function SecurityPage() {
   return (
     <div className="space-y-5">
       <StaffPageHeader
-        eyebrow="Securite"
+        eyebrow="Sécurité"
         title="Mot de passe"
       >
         <AnimatedUIButton

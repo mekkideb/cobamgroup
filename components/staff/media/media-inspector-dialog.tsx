@@ -12,10 +12,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { StaffBadge, StaffSelect } from "@/components/staff/ui";
+import { StaffBadge, StaffSearchSelect, StaffSelect } from "@/components/staff/ui";
 import { AnimatedUIButton } from "@/components/ui/custom/Buttons";
 import { fetchMediaBlobClient } from "@/features/media/client";
-import type { MediaDeleteOptions, MediaListItemDto } from "@/features/media/types";
+import type {
+  MediaDeleteOptions,
+  MediaListItemDto,
+  MediaListResult,
+  MediaUpdateInput,
+} from "@/features/media/types";
 import DynamicSuppressionButton from "./dynamic-suppression-button";
 import MediaKindBadge from "./media-kind-badge";
 import MediaVisibilityBadge from "./media-visibility-badge";
@@ -132,20 +137,22 @@ function MediaInspectorPreview({
 
 export default function MediaInspectorDialog({
   media,
+  folderOptions,
   open,
   onOpenChange,
   isDeleting,
   onDelete,
-  onUpdateVisibility,
+  onUpdateMedia,
 }: {
   media: MediaListItemDto | null;
+  folderOptions: MediaListResult["folderOptions"];
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isDeleting: boolean;
   onDelete: (mediaId: number, options?: MediaDeleteOptions) => Promise<boolean>;
-  onUpdateVisibility: (
+  onUpdateMedia: (
     mediaId: number,
-    visibility: "PRIVATE" | "PUBLIC",
+    input: MediaUpdateInput,
   ) => Promise<MediaListItemDto>;
 }) {
   const isForceDeleteMode =
@@ -185,7 +192,9 @@ export default function MediaInspectorDialog({
     setIsUpdatingVisibility(true);
 
     try {
-      await onUpdateVisibility(media.id, value as "PRIVATE" | "PUBLIC");
+      await onUpdateMedia(media.id, {
+        visibility: value as "PRIVATE" | "PUBLIC",
+      });
       toast.success(
         value === "PUBLIC"
           ? "Le media est maintenant public."
@@ -196,6 +205,39 @@ export default function MediaInspectorDialog({
         error instanceof Error
           ? error.message
           : "Impossible de mettre a jour la visibilite.",
+      );
+    } finally {
+      setIsUpdatingVisibility(false);
+    }
+  };
+
+  const handleFolderChange = async (value: string) => {
+    if (!media) {
+      return;
+    }
+
+    const nextFolderId = value ? Number(value) : null;
+
+    if (media.folderId === nextFolderId) {
+      return;
+    }
+
+    setIsUpdatingVisibility(true);
+
+    try {
+      await onUpdateMedia(media.id, {
+        folderId: nextFolderId,
+      });
+      toast.success(
+        nextFolderId == null
+          ? "Le media a ete deplace vers la racine."
+          : "Le media a ete deplace dans le dossier selectionne.",
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Impossible de deplacer le media.",
       );
     } finally {
       setIsUpdatingVisibility(false);
@@ -334,6 +376,23 @@ export default function MediaInspectorDialog({
                           ? "Un media public peut etre charge depuis le site sans jeton d'acces."
                           : "Vous n'avez pas l'autorisation de modifier la visibilite de ce media."}
                       </p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="font-medium text-cobam-dark-blue">Dossier</p>
+                      <StaffSearchSelect
+                        value={media.folderId != null ? String(media.folderId) : ""}
+                        onValueChange={(value) => void handleFolderChange(value)}
+                        options={folderOptions.map((option) => ({
+                          value: String(option.id),
+                          label: option.pathLabel,
+                        }))}
+                        emptyLabel="Racine"
+                        placeholder="Choisir un dossier"
+                        searchPlaceholder="Rechercher un dossier..."
+                        noResultsLabel="Aucun dossier disponible"
+                        disabled={isUpdatingVisibility || !media.canUpdate}
+                        fullWidth
+                      />
                     </div>
                     <div className="space-y-1">
                       <p className="font-medium text-cobam-dark-blue">Stockage</p>

@@ -1,4 +1,5 @@
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 
 export default function PanelField({
@@ -6,17 +7,19 @@ export default function PanelField({
   label,
   hint,
   children,
+  className
 }: {
   id: string;
   label: string;
   hint?: string;
   children: ReactNode;
+  className?: string
 }) {
   return (
-    <div className="space-y-2">
+    <div className={cn("space-y-2 w-full", className)}>
       <Label
         htmlFor={id}
-        className="text-[15px] font-semibold text-cobam-dark-blue"
+        className="text-[15px] overflow-visible font-semibold text-cobam-dark-blue block text-nowrap"
       >
         {label}
       </Label>

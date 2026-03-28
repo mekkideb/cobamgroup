@@ -63,6 +63,8 @@ export default function UserDetailPage() {
     deleteUser,
   } = useUserDetail(userId);
 
+  const baseUrl = "/espace/staff/administration/membres";
+
   const knownJobTitle = findKnownJobTitle(profile.jobTitle);
   const personalState: PersonalFormState | null = user
     ? {
@@ -184,14 +186,14 @@ export default function UserDetailPage() {
     if (!user) return;
 
     const confirmed = window.confirm(
-      `Supprimer definitivement le compte ${user.email} ?`,
+      `Supprimer définitivement le compte ${user.email} ?`,
     );
     if (!confirmed) return;
 
     const deleted = await deleteUser();
     if (deleted) {
-      toast.success("Compte supprime.");
-      router.replace("/espace/staff/gestion/users");
+      toast.success("Compte supprimé.");
+      router.replace(baseUrl);
     }
   };
 
@@ -203,7 +205,7 @@ export default function UserDetailPage() {
       return;
     }
 
-    const confirmed = window.confirm(`Reautoriser le compte ${user.email} ?`);
+    const confirmed = window.confirm(`Réautoriser le compte ${user.email} ?`);
     if (!confirmed) return;
 
     await saveBan({ banned: false });
@@ -224,7 +226,7 @@ export default function UserDetailPage() {
       <StaffStateCard
         title="Erreur"
         description={error}
-        actionHref="/espace/staff/gestion/users"
+        actionHref={baseUrl}
         actionLabel="Retour aux utilisateurs"
       />
     );
@@ -235,7 +237,7 @@ export default function UserDetailPage() {
   return (
     <div className="space-y-6">
       <StaffPageHeader
-        backHref="/espace/staff/gestion/users"
+        backHref={baseUrl}
         eyebrow="Utilisateurs"
         title={user.email}
         icon={Users}
@@ -278,7 +280,7 @@ export default function UserDetailPage() {
             disableEmail={!canEditCredentials}
             title="Informations personnelles"
             pretitle="Profil"
-            description="Mettez a jour les informations principales du compte."
+            description="Mettez à jour les informations principales du compte."
             submitLabel="Enregistrer le profil"
           />
 
@@ -302,10 +304,10 @@ export default function UserDetailPage() {
                 await saveCredentials();
               }}
               isSubmitting={isSavingCredentials}
-              submitLabel="Mettre a jour les identifiants"
-              pretitle="Securite"
+              submitLabel="Mettre à jour les identifiants"
+              pretitle="Sécurité"
               title="Mot de passe"
-              description="Definissez un nouveau mot de passe pour ce compte."
+              description="Définissez un nouveau mot de passe pour ce compte."
             />
           ) : null}
         </div>
@@ -341,7 +343,7 @@ export default function UserDetailPage() {
             isSubmitting={isSavingAccess}
             disabled={!canEditAccess}
             currentRoleLabel={user.roleLabel}
-            submitLabel="Mettre a jour les acces"
+            submitLabel="Mettre à jour les accès"
           />
 
           <PersonalDetailsPreviewAndAvatar
@@ -365,8 +367,8 @@ export default function UserDetailPage() {
               title={isBanned ? "Reactivation" : "Bannissement"}
               description={
                 isBanned
-                  ? "Reautorisez ce compte pour qu'il retrouve l'acces au portail."
-                  : "Bloquez ce compte pour lui retirer l'acces au portail."
+                  ? "Réautorisez ce compte pour qu'il retrouve l'accès au portail."
+                  : "Bloquez ce compte pour lui retirer l'accès au portail."
               }
             >
               <p className="text-sm leading-6 text-slate-500">
@@ -400,7 +402,7 @@ export default function UserDetailPage() {
                 }`}
                 textClassName={isBanned ? "text-emerald-700" : "text-amber-700"}
               >
-                {isBanned ? "Reautoriser le compte" : "Bannir le compte"}
+                {isBanned ? "Réautoriser le compte" : "Bannir le compte"}
               </AnimatedUIButton>
             </Panel>
           ) : null}
@@ -409,10 +411,10 @@ export default function UserDetailPage() {
             <Panel
               pretitle="Danger"
               title="Suppression du compte"
-              description="Cette action est definitive et ne peut pas etre annulee."
+              description="Cette action est définitive et ne peut pas être annulée."
             >
               <p className="text-sm leading-6 text-slate-500">
-                Supprimez ce compte uniquement si vous etes certain qu&apos;il ne doit plus exister dans le portail staff.
+                Supprimez ce compte uniquement si vous êtes certain qu&apos;il ne doit plus exister dans le portail staff.
               </p>
 
               <AnimatedUIButton

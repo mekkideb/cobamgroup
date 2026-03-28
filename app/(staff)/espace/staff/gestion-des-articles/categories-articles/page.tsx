@@ -144,7 +144,7 @@ export default function ArticleCategoriesListPage() {
                 icon="modify"
                 iconPosition="left"
               >
-                Voir / Modifier
+                Modifier
               </AnimatedUIButton>
             </td>
           </tr>

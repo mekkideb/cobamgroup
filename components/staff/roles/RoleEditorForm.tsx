@@ -18,6 +18,9 @@ import {
 } from "@/features/rbac/permissions";
 import type { RoleMutationInput } from "@/features/roles/types";
 import { AnimatedUIButton } from "@/components/ui/custom/Buttons";
+import PanelField from "../ui/PanelField";
+import PanelInput from "../ui/PanelInput";
+import BooleanButton from "../ui/BooleanButton";
 
 export type RoleFormState = {
   key: string;
@@ -42,9 +45,9 @@ type PermissionFamily = {
 
 const scopeLabels: Record<string, string> = {
   all: "Tout",
-  below_role: "Sous mon role",
-  own: "Mes elements",
-  self: "Moi-meme",
+  below_role: "Sous mon rôle",
+  own: "Mes éléments",
+  self: "Moi-même",
 };
 
 const scopeSelectionOrder = ["self", "own", "below_role", "all"] as const;
@@ -86,7 +89,7 @@ function buildPermissionFamilyLabel(permissions: PermissionDefinition[]) {
 
   return source.label
     .replace(/\s+sous mon rôle$/i, "")
-    .replace(/\s+sous mon rÃ´le$/i, "")
+    .replace(/\s+sous mon rôle$/i, "")
     .replace(/\btous les\b/gi, "les")
     .replace(/\btoutes les\b/gi, "les")
     .replace(/\bmes\b/gi, "les")
@@ -99,7 +102,7 @@ function buildPermissionFamilyLabel(permissions: PermissionDefinition[]) {
 }
 
 function normalizePermissionGroup(definition: PermissionDefinition) {
-  return definition.resource === "media" ? "Medias" : definition.group;
+  return definition.resource === "media" ? "Médias" : definition.group;
 }
 
 const permissionFamiliesByGroup = Array.from(
@@ -247,12 +250,14 @@ export default function RoleEditorForm({
   onSubmit,
   isSubmitting,
   submitLabel,
+  hideSubmitButton = false,
 }: {
   state: RoleFormState;
   onChange: (patch: Partial<RoleFormState>) => void;
-  onSubmit: () => void | Promise<void>;
+  onSubmit?: () => void | Promise<void>;
   isSubmitting?: boolean;
-  submitLabel: string;
+  submitLabel?: string;
+  hideSubmitButton?: boolean;
 }) {
   const normalizedPermissions = normalizeRolePermissionSelection(state.permissions);
   const displayedPermissions = normalizeRolePermissionSelection([
@@ -261,7 +266,7 @@ export default function RoleEditorForm({
   ]);
   const selectedCount = displayedPermissions.length;
   const selectedCountLabel =
-    selectedCount > 1 ? "permissions activees" : "permission activee";
+    selectedCount > 1 ? "permissions activées" : "permission activée";
 
   const setPermissionFamilyEnabled = (
     family: PermissionFamily,
@@ -303,95 +308,91 @@ export default function RoleEditorForm({
     onChange({ permissions: normalizeRolePermissionSelection(nextPermissions) });
   };
 
+  function keyfy(text: string): string {
+  return text
+    .normalize('NFKD')  // Unicode normalization
+    .replace(/[\u0300-\u036f]/g, '')  // Remove diacritics/accents
+    .replace(/[^\w\s-]/g, '')  // Keep letters, digits, spaces, dashes
+    .replace(/[-\s]+/g, '_')  // Spaces/dashes to single underscore
+    .replace(/^_|_$/g, '')  // Strip leading/trailing underscores
+    .toUpperCase();  // Uppercase
+  }
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.1fr_1.6fr]">
+    <div className="grid gap-6">
       <Panel
         pretitle=""
-        title="Informations generales"
-        description="Nom, cle, couleur, priorite, description et statut du role."
+        title="Gestion du rôle"
+        description="Activez les permissions à accorder à ce rôle. Les permissions de base du staff restent toujours actives."
       >
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-700">Nom</span>
-          <input
-            value={state.name}
-            onChange={(event) => onChange({ name: event.target.value })}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cobam-water-blue/40"
-          />
-        </label>
+          <div className="flex gap-8 justify-center items-center w-full px-8 py-5 border border-slate-300 rounded-2xl bg-slate-50/75">
+            <div className="flex-3">
+              <PanelField id="name" label="Nom">
+                <PanelInput
+                  value={state.name}
+                  onChange={(event) => {onChange({ 
+                    name: event.target.value, key: 
+                    keyfy(event.target.value) 
+                  })}}
+                  fullWidth
+                />
+              </PanelField>
+            </div>
 
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-700">Cle</span>
-          <input
-            value={state.key}
-            onChange={(event) => onChange({ key: event.target.value })}
-            placeholder="PRODUCT_EDITOR"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 uppercase focus:outline-none focus:ring-2 focus:ring-cobam-water-blue/40"
-          />
-        </label>
+            <div className="flex-3">
+              <PanelField id="key" label="Clé">
+                <PanelInput
+                  disabled
+                  value={state.key}
+                  fullWidth
+                />
+              </PanelField>
+            </div>
 
-        <div className="grid gap-3 sm:grid-cols-[120px_1fr]">
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-700">Couleur</span>
-            <input
-              type="color"
-              value={state.color}
-              onChange={(event) => onChange({ color: event.target.value })}
-              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-1 py-1"
-            />
-          </label>
+            <div className="flex-1">
+              <PanelField id="color" label="Couleur">
+                <PanelInput
+                  type="color"
+                  value={state.color}
+                  onChange={(event) => onChange({ color: event.target.value })}
+                  fullWidth
+                />
+            </PanelField>
+            </div>
+            <div>
+              <PanelField id="is-active" label="Actif">
+                <BooleanButton
+                  checked={state.isActive}
+                  onClick={(checked: boolean) => onChange({ isActive: checked })}
+                />
+            </PanelField>
+            </div>
+          </div>
 
-          <label className="space-y-1 text-sm text-slate-600">
-            <span className="font-medium text-slate-700">Priorite</span>
-            <input
-              type="number"
-              min={0}
-              value={state.priorityIndex}
-              onChange={(event) =>
-                onChange({ priorityIndex: Number(event.target.value) || 0 })
-              }
+          <PanelField id="description" label="Description">
+            <textarea
+              value={state.description}
+              onChange={(event) => onChange({ description: event.target.value })}
+              rows={4}
               className="w-full rounded-lg border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cobam-water-blue/40"
             />
-          </label>
-        </div>
+          </PanelField>
 
-        <label className="space-y-1 text-sm text-slate-600">
-          <span className="font-medium text-slate-700">Description</span>
-          <textarea
-            value={state.description}
-            onChange={(event) => onChange({ description: event.target.value })}
-            rows={4}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cobam-water-blue/40"
-          />
-        </label>
+          {!hideSubmitButton ? (
+            <AnimatedUIButton
+              type="button"
+              onClick={() => void onSubmit?.()}
+              disabled={isSubmitting}
+              loading={isSubmitting}
+              loadingText="Enregistrement..."
+              variant="primary"
+              className="w-full"
+            >
+              {submitLabel ?? "Enregistrer"}
+            </AnimatedUIButton>
+          ) : null}
 
-        <label className="flex items-center gap-3 rounded-xl border border-slate-200 px-3 py-3 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={state.isActive}
-            onChange={(event) => onChange({ isActive: event.target.checked })}
-            className="h-4 w-4 rounded border-slate-300"
-          />
-          Role actif
-        </label>
 
-        <AnimatedUIButton
-          type="button"
-          onClick={() => void onSubmit()}
-          disabled={isSubmitting}
-          loading={isSubmitting}
-          loadingText="Enregistrement..."
-          variant="primary"
-          className="w-full"
-        >
-          {submitLabel}
-        </AnimatedUIButton>
-      </Panel>
-
-      <Panel
-        pretitle=""
-        title="Permissions du role"
-        description="Activez les permissions a accorder a ce role. Les permissions de base du staff restent toujours actives."
-      >
         <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-600">
           <span className="font-semibold text-slate-800">{selectedCount}</span>{" "}
           {selectedCountLabel}
@@ -438,17 +439,17 @@ export default function RoleEditorForm({
                     (permission) => mediaManagePermissionKeySet.has(permission.key),
                   );
                   const helperDescription = missingMediaForceRemovePrerequisites
-                    ? "Activez d'abord un acces medias et une permission de suppression de medias."
+                    ? "Activez d'abord un accès médias et une permission de suppression de médias."
                     : missingArticleCategoryForceRemovePrerequisites
-                      ? "Activez d'abord l'acces aux categories d'articles et une permission de suppression."
+                      ? "Activez d'abord l'accès aux catégories d'articles et une permission de suppression."
                       : selectedPermission?.description ??
                         family.description ??
                         (isStaffBaseFamily
-                          ? "Permission de base accordee a tous les comptes Staff."
+                          ? "Permission de base accordée à tous les comptes Staff."
                           : isMediaForceRemoveFamily
-                            ? "Permet de dereferencer un media encore utilise avant suppression definitive."
+                            ? "Permet de déréférencer un média encore utilisé avant suppression définitive."
                             : isArticleCategoryForceRemoveFamily
-                              ? "Permet de detacher les articles lies avant suppression definitive."
+                              ? "Permet de détacher les articles liés avant suppression définitive."
                               : null);
 
                   return (
@@ -462,30 +463,11 @@ export default function RoleEditorForm({
                     >
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                         <div className="flex min-w-0 gap-3">
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={isEnabled}
-                            aria-disabled={isInteractionLocked}
+                          <BooleanButton
+                            checked={isEnabled}
                             disabled={isInteractionLocked}
-                            onClick={
-                              isInteractionLocked
-                                ? undefined
-                                : () =>
-                                    setPermissionFamilyEnabled(family, !isEnabled)
-                            }
-                            className={`mt-0.5 inline-flex h-7 w-12 flex-shrink-0 items-center rounded-full border transition-colors ${
-                              isEnabled
-                                ? "border-cobam-water-blue bg-cobam-water-blue"
-                                : "border-slate-300 bg-slate-200"
-                            } ${isInteractionLocked ? "cursor-not-allowed opacity-80" : ""}`}
-                          >
-                            <span
-                              className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                                isEnabled ? "translate-x-6" : "translate-x-1"
-                              }`}
-                            />
-                          </button>
+                            onClick={(checked: boolean) => setPermissionFamilyEnabled(family, checked)}
+                          />
 
                           <div className="min-w-0">
                             <p className="font-medium text-slate-800">
@@ -499,7 +481,7 @@ export default function RoleEditorForm({
                                   color="primary"
                                   icon="lock"
                                 >
-                                  Toujours activee pour le staff
+                                  Toujours activé
                                 </StaffBadge>
                               </div>
                             ) : missingMediaForceRemovePrerequisites ||
@@ -510,7 +492,7 @@ export default function RoleEditorForm({
                                   color="amber"
                                   icon="lock"
                                 >
-                                  Prerequis manquants
+                                  Prérequis manquants
                                 </StaffBadge>
                               </div>
                             ) : null}
@@ -561,7 +543,7 @@ export default function RoleEditorForm({
                                 ? "Dependances"
                                 : isEnabled
                                   ? "Activee"
-                                : "Desactivee"}
+                                : "Désactivée"}
                           </StaffBadge>
                           {isMediaAccessRelatedFamily || isMediaManageRelatedFamily ? (
                             <StaffBadge
@@ -570,7 +552,7 @@ export default function RoleEditorForm({
                                 isMediaManageRelatedFamily ? "blue" : "cyan"
                               }
                             >
-                              {isMediaManageRelatedFamily ? "Gestion medias" : "Acces medias"}
+                              {isMediaManageRelatedFamily ? "Gestion médias" : "Accès médias"}
                             </StaffBadge>
                           ) : null}
                         </div>

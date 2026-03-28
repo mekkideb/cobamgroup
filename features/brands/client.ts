@@ -111,7 +111,7 @@ export async function createBrandClient(
 
   if (!res.ok || !data?.ok || !data.brand) {
     throw new BrandsClientError(
-      getErrorMessage(data) || "Erreur lors de la creation de la marque",
+      getErrorMessage(data) || "Erreur lors de la création de la marque",
       res.status,
     );
   }
@@ -134,7 +134,7 @@ export async function updateBrandClient(
 
   if (!res.ok || !data?.ok || !data.brand) {
     throw new BrandsClientError(
-      getErrorMessage(data) || "Erreur lors de la mise a jour de la marque",
+      getErrorMessage(data) || "Erreur lors de la mise à jour de la marque",
       res.status,
     );
   }

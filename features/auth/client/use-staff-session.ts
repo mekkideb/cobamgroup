@@ -61,15 +61,6 @@ function readStoredSession(): StaffSession | null {
   return null;
 }
 
-function getInitialSessionState() {
-  const storedSession = readStoredSession();
-
-  return {
-    session: storedSession,
-    isLoading: storedSession == null,
-  };
-}
-
 export function useStaffSession(
   options: UseStaffSessionOptions = {},
 ): UseStaffSessionResult {
@@ -78,18 +69,8 @@ export function useStaffSession(
   const hasInitializedRef = useRef(false);
   const inFlightRefreshRef = useRef<Promise<StaffSession | null> | null>(null);
   const isMountedRef = useRef(true);
-  const initialSessionStateRef = useRef<ReturnType<typeof getInitialSessionState> | null>(null);
-
-  if (initialSessionStateRef.current == null) {
-    initialSessionStateRef.current = getInitialSessionState();
-  }
-
-  const [session, setSession] = useState<StaffSession | null>(
-    initialSessionStateRef.current.session,
-  );
-  const [isLoading, setIsLoading] = useState(
-    initialSessionStateRef.current.isLoading,
-  );
+  const [session, setSession] = useState<StaffSession | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -201,6 +182,13 @@ export function useStaffSession(
     }
 
     hasInitializedRef.current = true;
+    const storedSession = readStoredSession();
+
+    if (storedSession) {
+      setSession(storedSession);
+      setIsLoading(false);
+    }
+
     void refreshSession();
   }, [refreshSession]);
 

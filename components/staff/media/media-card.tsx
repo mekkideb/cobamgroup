@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+import type { DragEvent, MouseEvent } from "react";
 import { CheckSquare2, Package } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,14 +37,24 @@ export default function MediaCard({
   isSelected,
   onToggleSelected,
   onOpen,
+  onDragStart,
 }: {
   item: MediaListItemDto;
   isSelected: boolean;
-  onToggleSelected: (mediaId: number, checked: boolean) => void;
+  onToggleSelected: (
+    mediaId: number,
+    checked: boolean,
+    options?: { shiftKey?: boolean },
+  ) => void;
   onOpen: (mediaId: number) => void;
+  onDragStart: (mediaId: number, event: DragEvent<HTMLDivElement>) => void;
 }) {
+  const pendingShiftRef = useRef(false);
+
   return (
     <Card
+      draggable
+      onDragStart={(event) => onDragStart(item.id, event)}
       className={
         isSelected
           ? "overflow-hidden rounded-3xl border border-cobam-water-blue/40 bg-cobam-water-blue/5 shadow-sm"
@@ -54,7 +66,15 @@ export default function MediaCard({
           <div className="flex items-center gap-3">
             <Checkbox
               checked={isSelected}
-              onCheckedChange={(checked) => onToggleSelected(item.id, checked === true)}
+              onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                pendingShiftRef.current = event.shiftKey;
+              }}
+              onCheckedChange={(checked) => {
+                onToggleSelected(item.id, checked === true, {
+                  shiftKey: pendingShiftRef.current,
+                });
+                pendingShiftRef.current = false;
+              }}
               aria-label={`Selectionner ${getMediaDisplayTitle(item)}`}
             />
             <div className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">

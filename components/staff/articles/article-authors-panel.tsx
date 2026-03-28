@@ -26,6 +26,7 @@ type ArticleAuthorsPanelProps = {
   selectedAuthorIds: string[];
   canManageAuthors: boolean;
   onChange: (authorIds: string[]) => void;
+  mode?: "panel" | "compact";
 };
 
 function getAuthorLabel(author: {
@@ -41,6 +42,7 @@ export default function ArticleAuthorsPanel({
   selectedAuthorIds,
   canManageAuthors,
   onChange,
+  mode = "panel",
 }: ArticleAuthorsPanelProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -61,6 +63,7 @@ export default function ArticleAuthorsPanel({
     }
 
     let isMounted = true;
+
     const loadOptions = async () => {
       setIsLoading(true);
       setError(null);
@@ -114,91 +117,117 @@ export default function ArticleAuthorsPanel({
       ? `${coAuthors.length} co-auteur${coAuthors.length > 1 ? "s" : ""}`
       : "Aucun co-auteur";
 
-  return (
-    <>
-      <Panel
-        pretitle="Collaboration"
-        title="Auteurs"
-        description="Ajoutez des co-auteurs pour leur permettre d'ecrire l'article avec l'auteur d'origine."
-      >
-        <div className="space-y-4">
-          {originalAuthor ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold text-cobam-dark-blue">
-                  Auteur d&apos;origine
-                </p>
-                <StaffBadge size="sm" color="blue">
-                  Principal
-                </StaffBadge>
-              </div>
+  const authorContent = (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-cobam-dark-blue">Co-auteurs</p>
+          <p className="text-sm text-slate-500">
+            Ajoutez des collaborateurs a l&apos;article sans disperser la gestion.
+          </p>
+        </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm text-slate-700">
-                  {getAuthorLabel(originalAuthor)}
-                </p>
-                <StaffBadge size="sm" color="default">
-                  {originalAuthor.roleLabel}
-                </StaffBadge>
-              </div>
-            </div>
-          ) : null}
+        <AnimatedUIButton
+          type="button"
+          variant="outline"
+          size="sm"
+          icon="plus"
+          iconPosition="left"
+          onClick={() => setOpen(true)}
+          disabled={!canManageAuthors}
+        >
+          Gerer les auteurs
+        </AnimatedUIButton>
+      </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-cobam-dark-blue">
-                  Co-auteurs
-                </p>
-                <p className="text-sm text-slate-500">{summaryLabel}</p>
-              </div>
-
-              <AnimatedUIButton
-                type="button"
-                variant="outline"
-                icon="plus"
-                iconPosition="left"
-                onClick={() => setOpen(true)}
-                disabled={!canManageAuthors}
-              >
-                Gérer les auteurs
-              </AnimatedUIButton>
-            </div>
-
-            {coAuthors.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {coAuthors.map((author) => (
-                  <StaffBadge
-                    key={author.id}
-                    size="sm"
-                    color={author.status === "BANNED" ? "amber" : "default"}
-                  >
-                    {getAuthorLabel(author)}
-                  </StaffBadge>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-500">
-                Aucun co-auteur n&apos;est associe a cet article pour le moment.
-              </p>
-            )}
+      {originalAuthor ? (
+        <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold text-cobam-dark-blue">
+              Auteur d&apos;origine
+            </p>
+            <StaffBadge size="sm" color="blue">
+              Principal
+            </StaffBadge>
           </div>
 
-          {!canManageAuthors ? (
-            <StaffNotice variant="warning" title="Modification indisponible">
-              Vous pouvez voir les auteurs, mais vous n&apos;avez pas la permission
-              d&apos;en ajouter ou d&apos;en retirer sur cet article.
-            </StaffNotice>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm text-slate-700">
+              {getAuthorLabel(originalAuthor)}
+            </p>
+            <StaffBadge size="sm" color="default">
+              {originalAuthor.roleLabel}
+            </StaffBadge>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-cobam-dark-blue">
+              Collaborateurs
+            </p>
+            <p className="text-sm text-slate-500">{summaryLabel}</p>
+          </div>
+
+          {coAuthors.length > 0 ? (
+            <StaffBadge size="sm" color="default" icon="users">
+              {coAuthors.length}
+            </StaffBadge>
           ) : null}
         </div>
-      </Panel>
+
+        {coAuthors.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {coAuthors.map((author) => (
+              <StaffBadge
+                key={author.id}
+                size="sm"
+                color={author.status === "BANNED" ? "amber" : "default"}
+              >
+                {getAuthorLabel(author)}
+              </StaffBadge>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">
+            Aucun co-auteur n&apos;est associe a cet article pour le moment.
+          </p>
+        )}
+      </div>
+
+      {!canManageAuthors ? (
+        <StaffNotice variant="warning" title="Modification indisponible">
+          Vous pouvez voir les auteurs, mais vous n&apos;avez pas la permission
+          d&apos;en ajouter ou d&apos;en retirer sur cet article.
+        </StaffNotice>
+      ) : null}
+    </div>
+  );
+
+  return (
+    <>
+      {mode === "compact" ? (
+        <div className="space-y-4 rounded-[24px] border border-slate-200 bg-slate-50/70 p-4">
+          {authorContent}
+        </div>
+      ) : (
+        <Panel
+          pretitle="Collaboration"
+          title="Auteurs"
+          description="Ajoutez des co-auteurs pour leur permettre d'ecrire l'article avec l'auteur d'origine."
+        >
+          {authorContent}
+        </Panel>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[min(90vh,760px)] overflow-hidden p-0">
-          <DialogHeader className="border-b border-slate-200 pb-4">
-            <DialogTitle>Gérer les auteurs de l&apos;article</DialogTitle>
+          <DialogHeader className="border-b border-slate-200 px-6 pb-4 pt-6">
+            <DialogTitle>Gerer les auteurs de l&apos;article</DialogTitle>
             <DialogDescription>
-              Sélectionnez les collaborateurs qui peuvent écrire avec l&apos;auteur
+              Selectionnez les collaborateurs qui peuvent ecrire avec l&apos;auteur
               d&apos;origine.
             </DialogDescription>
           </DialogHeader>
@@ -262,6 +291,7 @@ export default function ArticleAuthorsPanel({
                 <div className="divide-y divide-slate-100">
                   {options.map((option) => {
                     const checked = selectedSet.has(option.id);
+
                     return (
                       <label
                         key={option.id}

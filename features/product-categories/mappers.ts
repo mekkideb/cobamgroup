@@ -1,15 +1,42 @@
-import type { ProductCategory } from "@prisma/client";
 import type {
   ProductCategoryDetailDto,
   ProductCategoryListItemDto,
-  ProductCategoryParentOptionDto,
+  ProductSubcategoryListItemDto,
 } from "./types";
 
-type ProductCategoryWithRelations = ProductCategory & {
-  parent: { id: bigint; name: string; slug: string } | null;
+type ProductSubcategoryWithCounts = {
+  id: bigint;
+  categoryId: bigint;
+  name: string;
+  subtitle: string | null;
+  slug: string;
+  description: string | null;
+  descriptionSeo: string | null;
+  imageMediaId: bigint | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
   _count: {
-    children: number;
-    productModels: number;
+    productFamilies: number;
+  };
+};
+
+type ProductCategoryWithRelations = {
+  id: bigint;
+  name: string;
+  subtitle: string | null;
+  slug: string;
+  description: string | null;
+  descriptionSeo: string | null;
+  imageMediaId: bigint | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  subcategories: ProductSubcategoryWithCounts[];
+  _count: {
+    subcategories: number;
   };
 };
 
@@ -17,9 +44,36 @@ function toNumber(value: bigint | null | undefined): number | null {
   return value == null ? null : Number(value);
 }
 
+function mapProductSubcategoryToListItemDto(
+  category: Pick<ProductCategoryWithRelations, "id" | "name" | "slug">,
+  subcategory: ProductSubcategoryWithCounts,
+): ProductSubcategoryListItemDto {
+  return {
+    id: Number(subcategory.id),
+    categoryId: Number(category.id),
+    categoryName: category.name,
+    categorySlug: category.slug,
+    name: subcategory.name,
+    subtitle: subcategory.subtitle,
+    slug: subcategory.slug,
+    description: subcategory.description,
+    descriptionSeo: subcategory.descriptionSeo,
+    imageMediaId: toNumber(subcategory.imageMediaId),
+    sortOrder: subcategory.sortOrder,
+    isActive: subcategory.isActive,
+    productFamilyCount: subcategory._count.productFamilies,
+    createdAt: subcategory.createdAt.toISOString(),
+    updatedAt: subcategory.updatedAt.toISOString(),
+  };
+}
+
 export function mapProductCategoryToListItemDto(
   category: ProductCategoryWithRelations,
 ): ProductCategoryListItemDto {
+  const subcategories = category.subcategories.map((subcategory) =>
+    mapProductSubcategoryToListItemDto(category, subcategory),
+  );
+
   return {
     id: Number(category.id),
     name: category.name,
@@ -30,11 +84,12 @@ export function mapProductCategoryToListItemDto(
     imageMediaId: toNumber(category.imageMediaId),
     sortOrder: category.sortOrder,
     isActive: category.isActive,
-    parentId: toNumber(category.parentId),
-    parentName: category.parent?.name ?? null,
-    parentSlug: category.parent?.slug ?? null,
-    childCount: category._count.children,
-    productModelCount: category._count.productModels,
+    subcategoryCount: category._count.subcategories,
+    productFamilyCount: subcategories.reduce(
+      (total, subcategory) => total + subcategory.productFamilyCount,
+      0,
+    ),
+    subcategories,
     createdAt: category.createdAt.toISOString(),
     updatedAt: category.updatedAt.toISOString(),
   };
@@ -44,20 +99,6 @@ export function mapProductCategoryToDetailDto(
   category: ProductCategoryWithRelations,
 ): ProductCategoryDetailDto {
   return mapProductCategoryToListItemDto(category);
-}
-
-export function mapProductCategoryToParentOptionDto(category: {
-  id: bigint;
-  name: string;
-  slug: string;
-  parentId: bigint | null;
-}): ProductCategoryParentOptionDto {
-  return {
-    id: Number(category.id),
-    name: category.name,
-    slug: category.slug,
-    parentId: toNumber(category.parentId),
-  };
 }
 
 export function toProductCategoryAuditSnapshot(value: unknown): unknown {

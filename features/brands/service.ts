@@ -8,7 +8,7 @@ import {
 } from "./access";
 import {
   countBrands,
-  countProductModelsForBrand,
+  countProductFamiliesForBrand,
   createBrand,
   createBrandAuditLog,
   deleteBrand,
@@ -97,7 +97,7 @@ export async function listBrandsService(
   query: BrandListQuery,
 ): Promise<BrandListResult> {
   if (!canAccessBrands(session)) {
-    throw new BrandServiceError("Acces refuse.", 403);
+    throw new BrandServiceError("Accès refusé.", 403);
   }
 
   const [items, total] = await Promise.all([
@@ -118,7 +118,7 @@ export async function getBrandByIdService(
   brandId: number,
 ) {
   if (!canAccessBrands(session)) {
-    throw new BrandServiceError("Acces refuse.", 403);
+    throw new BrandServiceError("Accès refusé.", 403);
   }
 
   const brand = await findBrandById(brandId);
@@ -134,7 +134,7 @@ export async function createBrandService(
   input: BrandCreateInput,
 ) {
   if (!canCreateBrands(session)) {
-    throw new BrandServiceError("Acces refuse.", 403);
+    throw new BrandServiceError("Accès refusé.", 403);
   }
 
   await assertUniqueBrandInput(input);
@@ -148,7 +148,7 @@ export async function createBrandService(
     actionType: "CREATE",
     entityId: String(brand.id),
     targetLabel: brand.name,
-    summary: "Creation d'une nouvelle marque",
+    summary: "Création d'une nouvelle marque",
     afterSnapshotJson: toBrandAuditSnapshot(brand),
   });
 
@@ -161,7 +161,7 @@ export async function updateBrandService(
   input: BrandUpdateInput,
 ) {
   if (!canAccessBrands(session)) {
-    throw new BrandServiceError("Acces refuse.", 403);
+    throw new BrandServiceError("Accès refusé.", 403);
   }
 
   const before = await findBrandById(brandId);
@@ -170,7 +170,7 @@ export async function updateBrandService(
   }
 
   if (!canModifyBrand(session, before.ownerUserId)) {
-    throw new BrandServiceError("Acces refuse.", 403);
+    throw new BrandServiceError("Accès refusé.", 403);
   }
 
   await assertUniqueBrandInput(input, { excludeBrandId: brandId });
@@ -184,7 +184,7 @@ export async function updateBrandService(
     actionType: "UPDATE",
     entityId: String(brand.id),
     targetLabel: brand.name,
-    summary: "Mise a jour d'une marque",
+    summary: "Mise à jour d'une marque",
     beforeSnapshotJson: toBrandAuditSnapshot(before),
     afterSnapshotJson: toBrandAuditSnapshot(brand),
   });
@@ -197,7 +197,7 @@ export async function deleteBrandService(
   brandId: number,
 ) {
   if (!canAccessBrands(session)) {
-    throw new BrandServiceError("Acces refuse.", 403);
+    throw new BrandServiceError("Accès refusé.", 403);
   }
 
   const before = await findBrandById(brandId);
@@ -206,11 +206,11 @@ export async function deleteBrandService(
   }
 
   if (!canModifyBrand(session, before.ownerUserId)) {
-    throw new BrandServiceError("Acces refuse.", 403);
+    throw new BrandServiceError("Accès refusé.", 403);
   }
 
-  const linkedProductModels = await countProductModelsForBrand(brandId);
-  if (linkedProductModels > 0) {
+  const linkedProductFamilies = await countProductFamiliesForBrand(brandId);
+  if (linkedProductFamilies > 0) {
     throw new BrandServiceError(
       "Impossible de supprimer une marque encore liee a des produits.",
       400,

@@ -9,7 +9,7 @@ import {
   deleteMediaService,
   getMediaByIdService,
   MediaServiceError,
-  updateMediaVisibilityService,
+  updateMediaService,
 } from "@/features/media/service";
 
 export const runtime = "nodejs";
@@ -91,7 +91,7 @@ export async function PATCH(
     const mediaId = parseMediaIdParam(idParam);
     const body = await req.json();
     const input = parseMediaUpdateInput(body);
-    const media = await updateMediaVisibilityService(session, mediaId, input);
+    const media = await updateMediaService(session, mediaId, input);
 
     return NextResponse.json({ ok: true, media }, { status: 200 });
   } catch (error: unknown) {

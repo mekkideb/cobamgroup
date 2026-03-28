@@ -10,9 +10,14 @@ import {
   findRoleById,
   findRoleByKey,
   listRoles,
+  reorderRoles,
   updateRole,
 } from "./repository";
-import type { RoleDetailDto, RoleMutationInput, RolesListResult } from "./types";
+import type {
+  RoleDetailDto,
+  RoleMutationInput,
+  RolesListResult,
+} from "./types";
 
 const RESERVED_ROLE_KEYS = new Set(["ROOT", "ADMIN", "STAFF"]);
 
@@ -65,7 +70,7 @@ function assertCanDeleteRole(session: StaffSession) {
 function assertValidRoleKey(key: string) {
   if (RESERVED_ROLE_KEYS.has(key)) {
     throw new RoleServiceError(
-      "Cette cle de role est reservee au systeme.",
+      "Cette clé de rôle est réservée au système.",
       400,
     );
   }
@@ -107,14 +112,17 @@ export async function listRolesService(
   throw new RoleServiceError("Forbidden", 403);
 }
 
-export async function getRoleByIdService(session: StaffSession, roleId: string) {
+export async function getRoleByIdService(
+  session: StaffSession,
+  roleId: string,
+) {
   if (!hasPermission(session, PERMISSIONS.ROLES_VIEW_ALL)) {
     throw new RoleServiceError("Forbidden", 403);
   }
 
   const role = await findRoleById(roleId);
   if (!role) {
-    throw new RoleServiceError("Role introuvable.", 404);
+    throw new RoleServiceError("Rôle introuvable.", 404);
   }
 
   return mapRole(role);
@@ -129,7 +137,7 @@ export async function createRoleService(
 
   const existing = await findRoleByKey(input.key);
   if (existing) {
-    throw new RoleServiceError("Un role avec cette cle existe deja.", 400);
+    throw new RoleServiceError("Un rôle avec cette clé existe déjà.", 400);
   }
 
   const role = await createRole({
@@ -142,7 +150,7 @@ export async function createRoleService(
     actorUserId: session.id,
     entityId: String(role.id),
     targetLabel: role.name,
-    summary: "Creation d'un role dynamique",
+    summary: "Création d'un rôle dynamique",
     actionType: "CREATE",
     afterSnapshotJson: mapRole(role),
   });
@@ -160,12 +168,12 @@ export async function updateRoleService(
 
   const before = await findRoleById(roleId);
   if (!before) {
-    throw new RoleServiceError("Role introuvable.", 404);
+    throw new RoleServiceError("Rôle introuvable.", 404);
   }
 
   const existing = await findRoleByKey(input.key);
   if (existing && String(existing.id) !== roleId) {
-    throw new RoleServiceError("Un role avec cette cle existe deja.", 400);
+    throw new RoleServiceError("Un rôle avec cette clé existe déjà.", 400);
   }
 
   const role = await updateRole({
@@ -179,7 +187,7 @@ export async function updateRoleService(
     actorUserId: session.id,
     entityId: String(role.id),
     targetLabel: role.name,
-    summary: "Mise a jour d'un role dynamique",
+    summary: "Mise à jour d'un rôle dynamique",
     beforeSnapshotJson: mapRole(before),
     afterSnapshotJson: mapRole(role),
   });
@@ -187,12 +195,44 @@ export async function updateRoleService(
   return mapRole(role);
 }
 
-export async function deleteRoleService(session: StaffSession, roleId: string) {
+export async function reorderRolesService(
+  session: StaffSession,
+  orderedRoleIds: string[],
+) {
+  assertCanUpdateRole(session);
+
+  const existingRoles = await listRoles();
+  const existingRoleIds = existingRoles.map((role) => String(role.id));
+
+  if (orderedRoleIds.length !== existingRoleIds.length) {
+    throw new RoleServiceError("L'ordre des rôles est incomplet.", 400);
+  }
+
+  const expectedIds = new Set(existingRoleIds);
+  if (orderedRoleIds.some((roleId) => !expectedIds.has(roleId))) {
+    throw new RoleServiceError(
+      "L'ordre des rôles contient un rôle inconnu.",
+      400,
+    );
+  }
+
+  const reorderedRoles = await reorderRoles(orderedRoleIds);
+
+  return {
+    items: reorderedRoles.map((role) => mapRole(role)),
+    total: reorderedRoles.length,
+  };
+}
+
+export async function deleteRoleService(
+  session: StaffSession,
+  roleId: string,
+) {
   assertCanDeleteRole(session);
 
   const before = await findRoleById(roleId);
   if (!before) {
-    throw new RoleServiceError("Role introuvable.", 404);
+    throw new RoleServiceError("Rôle introuvable.", 404);
   }
 
   const affectedUsers = await countUsersWithRole(roleId);
@@ -202,7 +242,7 @@ export async function deleteRoleService(session: StaffSession, roleId: string) {
     actorUserId: session.id,
     entityId: String(deleted.id),
     targetLabel: deleted.name,
-    summary: `Suppression d'un role dynamique (${affectedUsers} utilisateur(s) impacte(s))`,
+    summary: `Suppression d'un rôle dynamique (${affectedUsers} utilisateur(s) impacté(s))`,
     actionType: "DELETE",
     beforeSnapshotJson: mapRole(before),
   });

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -11,29 +11,18 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-
-export interface Category {
-  href: string;
-  title: string;
-  subtitle: string;
-  descriptionSEO: string;
-  imageUrl: string;
-  imageUrlHD: string;
-  slug: string;
-  parent: string | null;
-}
+import type { PublicMegaMenuProductCategory } from "@/features/product-categories/public-types";
 
 interface MegaMenuProps {
   menuLabel: string;
-  data: Category[];
+  data: PublicMegaMenuProductCategory[];
 }
 
 export default function MegaMenu({ menuLabel, data }: MegaMenuProps) {
-  // --- NEW: Control the Radix NavigationMenu open state ---
   const [menuValue, setMenuValue] = useState("");
-  
   const [activeIndex, setActiveIndex] = useState(0);
-  const [hoveredSubCategory, setHoveredSubCategory] = useState<Category | null>(null);
+  const [hoveredSubCategory, setHoveredSubCategory] =
+    useState<PublicMegaMenuProductCategory | null>(null);
 
   const handleOpenChange = (isOpen: boolean) => {
     if (isOpen) {
@@ -42,24 +31,12 @@ export default function MegaMenu({ menuLabel, data }: MegaMenuProps) {
     }
   };
 
-  // --- HELPER: Close menu on link click ---
   const closeMenu = () => setMenuValue("");
 
-  if (!data || data.length === 0) return null;
+  if (data.length === 0) return null;
 
-  const getCategoryPath = (slug: string | null): string => {
-    if (!slug) return "#";
-    
-    const category = data.find((cat) => cat.slug === slug);
-    if (!category) return "#";
-
-    if (category.parent) {
-      return `${getCategoryPath(category.parent)}/${category.slug}`;
-    }
-    
-    return `/produits/${category.slug}`;
-  };
-
+  const getCategoryPath = (slug: string | null): string =>
+    data.find((category) => category.slug === slug)?.href ?? "#";
 
   const rootCategories = data.filter((item) => item.parent === null);
 
@@ -69,45 +46,39 @@ export default function MegaMenu({ menuLabel, data }: MegaMenuProps) {
   const previewItem = hoveredSubCategory || activeCategory;
   const isPreviewingCategory = !hoveredSubCategory;
 
-  const getSubcategories = (parentSlug: string) => {
-    return data.filter((item) => item.parent === parentSlug);
-  };
+  const getSubcategories = (parentSlug: string) =>
+    data.filter((item) => item.parent === parentSlug);
 
   const activeCategorySubcategories = getSubcategories(activeCategory.slug);
 
   return (
-    <NavigationMenu 
-      // --- NEW: Bound the value to our state ---
+    <NavigationMenu
       value={menuValue}
-      onValueChange={(val) => {
-        setMenuValue(val);
-        handleOpenChange(!!val);
+      onValueChange={(value) => {
+        setMenuValue(value);
+        handleOpenChange(!!value);
       }}
-      className="z-50 hidden md:flex !static [&>div.absolute]:w-full [&>div.absolute]:left-0 [&>div.absolute]:top-1/2 [&>div.absolute]:flex [&>div.absolute]:justify-center [&>div.absolute>div]:!border-none [&>div.absolute>div]:!shadow-none [&>div.absolute>div]:!bg-transparent [&>div.absolute>div]:!ring-0" 
+      className="z-50 hidden md:flex !static [&>div.absolute]:left-0 [&>div.absolute]:top-1/2 [&>div.absolute]:flex [&>div.absolute]:w-full [&>div.absolute]:justify-center [&>div.absolute>div]:!border-none [&>div.absolute>div]:!bg-transparent [&>div.absolute>div]:!shadow-none [&>div.absolute>div]:!ring-0"
     >
       <NavigationMenuList className="!static">
-        {/* --- NEW: Added unique value to the item so Radix knows which one is open --- */}
         <NavigationMenuItem value={menuLabel} className="!static">
-          <NavigationMenuTrigger 
+          <NavigationMenuTrigger
             className="bg-transparent px-0 py-0 font-semibold text-sm text-cobam-dark-blue hover:bg-transparent hover:text-cobam-water-blue focus:bg-transparent data-[active]:bg-transparent data-[state=open]:bg-transparent data-[state=open]:text-cobam-water-blue transition-colors outline-none"
             onMouseEnter={() => {
               setActiveIndex(0);
               setHoveredSubCategory(null);
             }}
           >
-            <span className="flex items-center gap-1">
-              {menuLabel}
-            </span>
+            <span className="flex items-center gap-1">{menuLabel}</span>
           </NavigationMenuTrigger>
 
           <NavigationMenuContent>
-            <div className="relative w-max max-w-[95vw] 2xl:max-w-[1400px] overflow-hidden rounded-3xl border border-black/5 bg-white m-2 flex">
-              
+            <div className="relative w-max max-w-[95vw] overflow-hidden rounded-3xl border border-black/5 bg-white m-2 flex 2xl:max-w-[1400px]">
               <div className="absolute inset-0 z-0 lg:hidden pointer-events-none overflow-hidden">
                 {previewItem.imageUrl ? (
                   <Image
                     src={previewItem.imageUrl}
-                    alt="Background preview"
+                    alt="Aperçu de catégorie"
                     fill
                     className="object-cover opacity-[0.08] grayscale transition-opacity duration-500"
                   />
@@ -118,12 +89,10 @@ export default function MegaMenu({ menuLabel, data }: MegaMenuProps) {
               </div>
 
               <div className="relative z-10 flex flex-col lg:flex-row p-4 lg:p-6 gap-6 lg:gap-8">
-                
-                {/* --- LEFT COLUMN: PREVIEW BANNER --- */}
                 <div className="hidden lg:flex w-[320px] xl:w-[360px] shrink-0 flex-col">
                   <Link
                     href={getCategoryPath(previewItem.slug)}
-                    onClick={closeMenu} // --- NEW: Close on click ---
+                    onClick={closeMenu}
                     className="group relative flex flex-col h-full overflow-hidden rounded-[24px] border border-cobam-water-blue/15 bg-white transition-all duration-300 hover:shadow-xl hover:shadow-cobam-water-blue/5 hover:border-cobam-water-blue/30"
                   >
                     <div className="relative h-56 w-full shrink-0 overflow-hidden bg-gray-50/50">
@@ -131,7 +100,7 @@ export default function MegaMenu({ menuLabel, data }: MegaMenuProps) {
                         <>
                           <Image
                             src={previewItem.imageUrl}
-                            alt={previewItem.title || "Preview image"}
+                            alt={previewItem.title || "Image de catégorie"}
                             fill
                             className="object-cover transition-transform duration-700 group-hover:scale-105"
                             sizes="(max-width: 1024px) 100vw, 380px"
@@ -141,11 +110,11 @@ export default function MegaMenu({ menuLabel, data }: MegaMenuProps) {
                       ) : (
                         <div className="absolute inset-0 bg-gradient-to-br from-cobam-water-blue/5 to-gray-100" />
                       )}
-                      
+
                       <div className="absolute bottom-4 left-5 right-5 flex items-center justify-between">
-                         <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white drop-shadow-md">
-                           {isPreviewingCategory ? "À la une" : "Sous-catégorie"}
-                         </span>
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white drop-shadow-md">
+                          {isPreviewingCategory ? "À la une" : "Sous-catégorie"}
+                        </span>
                       </div>
                     </div>
 
@@ -173,36 +142,38 @@ export default function MegaMenu({ menuLabel, data }: MegaMenuProps) {
                         </p>
                       )}
 
-                      {isPreviewingCategory && activeCategorySubcategories.length > 0 && (
-                        <div className="mt-auto pt-5">
-                          <div className="flex flex-wrap gap-2">
-                            {activeCategorySubcategories.slice(0, 5).map((sub, idx) => (
-                              <div
-                                key={`badge-${sub.slug}-${idx}`}
-                                className="rounded-lg border border-cobam-water-blue/20 bg-cobam-water-blue/5 px-2.5 py-1.5 transition-colors group-hover:border-cobam-water-blue/40 group-hover:bg-cobam-water-blue/10"
-                              >
-                                <span className="text-[11px] font-semibold text-cobam-dark-blue leading-none">
-                                  {sub.title}
-                                </span>
-                              </div>
-                            ))}
-                            {activeCategorySubcategories.length > 5 && (
-                              <div className="rounded-lg border border-transparent px-1 py-1.5 flex items-center">
-                                <span className="text-[11px] font-semibold text-cobam-carbon-grey leading-none">
-                                  +{activeCategorySubcategories.length - 5}
-                                </span>
-                              </div>
-                            )}
+                      {isPreviewingCategory &&
+                        activeCategorySubcategories.length > 0 && (
+                          <div className="mt-auto pt-5">
+                            <div className="flex flex-wrap gap-2">
+                              {activeCategorySubcategories
+                                .slice(0, 5)
+                                .map((subcategory, index) => (
+                                  <div
+                                    key={`badge-${subcategory.slug}-${index}`}
+                                    className="rounded-lg border border-cobam-water-blue/20 bg-cobam-water-blue/5 px-2.5 py-1.5 transition-colors group-hover:border-cobam-water-blue/40 group-hover:bg-cobam-water-blue/10"
+                                  >
+                                    <span className="text-[11px] font-semibold text-cobam-dark-blue leading-none">
+                                      {subcategory.title}
+                                    </span>
+                                  </div>
+                                ))}
+                              {activeCategorySubcategories.length > 5 && (
+                                <div className="rounded-lg border border-transparent px-1 py-1.5 flex items-center">
+                                  <span className="text-[11px] font-semibold text-cobam-carbon-grey leading-none">
+                                    +{activeCategorySubcategories.length - 5}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
                     </div>
                   </Link>
                 </div>
 
-                {/* --- RIGHT COLUMN: GRID OF CATEGORIES --- */}
                 <div className="flex-1">
-                  <div className="grid gap-x-6 gap-y-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
                     {rootCategories.map((category, index) => {
                       const isCategoryActive = index === activeIndex;
                       const subcategories = getSubcategories(category.slug);
@@ -222,12 +193,16 @@ export default function MegaMenu({ menuLabel, data }: MegaMenuProps) {
                         >
                           <Link
                             href={getCategoryPath(category.slug)}
-                            onClick={closeMenu} // --- NEW: Close on click ---
+                            onClick={closeMenu}
                             className="mb-4 block group/link outline-none"
                           >
-                            <h4 className={`text-sm font-bold uppercase tracking-[0.1em] transition-colors ${
-                              isCategoryActive ? "text-cobam-water-blue" : "text-cobam-dark-blue group-hover/link:text-cobam-water-blue"
-                            }`}>
+                            <h4
+                              className={`text-sm font-bold uppercase tracking-[0.1em] transition-colors ${
+                                isCategoryActive
+                                  ? "text-cobam-water-blue"
+                                  : "text-cobam-dark-blue group-hover/link:text-cobam-water-blue"
+                              }`}
+                            >
                               {category.title || "Catégorie"}
                             </h4>
                             {category.subtitle && (
@@ -237,29 +212,38 @@ export default function MegaMenu({ menuLabel, data }: MegaMenuProps) {
                             )}
                           </Link>
 
-                          <div className="flex flex-col gap-1">
-                            {subcategories.map((subCat) => {
-                              const isSubActive = hoveredSubCategory?.slug === subCat.slug;
+                          <div className="flex flex-col">
+                            {subcategories.map((subCategory) => {
+                              const isSubActive =
+                                hoveredSubCategory?.slug === subCategory.slug;
 
                               return (
                                 <Link
-                                  key={subCat.slug}
-                                  href={getCategoryPath(subCat.slug)}
-                                  onClick={closeMenu} // --- NEW: Close on click ---
-                                  onMouseEnter={() => setHoveredSubCategory(subCat)}
-                                  onMouseLeave={() => setHoveredSubCategory(null)}
+                                  key={subCategory.slug}
+                                  href={getCategoryPath(subCategory.slug)}
+                                  onClick={closeMenu}
+                                  onMouseEnter={() =>
+                                    setHoveredSubCategory(subCategory)
+                                  }
+                                  onMouseLeave={() =>
+                                    setHoveredSubCategory(null)
+                                  }
                                   className={`group/item relative rounded-xl px-3 py-2 transition-all duration-200 outline-none ${
-                                    isSubActive 
-                                      ? "bg-white ring-1 ring-black/5" 
-                                      : isCategoryActive 
-                                        ? "hover:bg-white/60" 
+                                    isSubActive
+                                      ? "bg-white ring-1 ring-black/5"
+                                      : isCategoryActive
+                                        ? "hover:bg-white/60"
                                         : "hover:bg-transparent"
                                   }`}
                                 >
-                                  <div className={`text-[13px] font-medium transition-colors ${
-                                    isSubActive ? "text-cobam-water-blue" : "text-cobam-carbon-grey group-hover/item:text-cobam-dark-blue"
-                                  }`}>
-                                    {subCat.title || "Sous-catégorie"}
+                                  <div
+                                    className={`text-[13px] font-medium transition-colors ${
+                                      isSubActive
+                                        ? "text-cobam-water-blue"
+                                        : "text-cobam-carbon-grey group-hover/item:text-cobam-dark-blue"
+                                    }`}
+                                  >
+                                    {subCategory.title || "Sous-catégorie"}
                                   </div>
                                 </Link>
                               );
@@ -270,7 +254,6 @@ export default function MegaMenu({ menuLabel, data }: MegaMenuProps) {
                     })}
                   </div>
                 </div>
-
               </div>
             </div>
           </NavigationMenuContent>

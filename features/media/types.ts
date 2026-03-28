@@ -9,14 +9,18 @@ export type MediaFilterKind = MediaKind | "ALL";
 export type MediaSortBy = "date" | "name" | "size";
 export type MediaSortDirection = "asc" | "desc";
 export type MediaView = "all" | "images" | "videos" | "pdf" | "audio" | "other";
+export type MediaBrowseMode = "folders" | "library";
+export type MediaFolderLayout = "grid" | "list";
 export type MediaFileVariant = "original" | "thumbnail";
 export type MediaDeleteOptions = {
   force?: boolean;
 };
 
 export type MediaListQuery = {
+  browseMode: MediaBrowseMode;
   page: number;
   pageSize: number;
+  folderId?: number | null;
   q?: string;
   kind?: MediaFilterKind;
   status?: MediaFilterStatus;
@@ -30,6 +34,7 @@ export type MediaUploadInput = {
   altText: string | null;
   description: string | null;
   visibility: MediaVisibility;
+  folderId: number | null;
 };
 
 export type MediaUploadRequest = {
@@ -38,15 +43,26 @@ export type MediaUploadRequest = {
   altText?: string;
   description?: string;
   visibility?: MediaVisibility;
+  folderId?: number | null;
 };
 
 export type MediaUpdateInput = {
-  visibility: MediaVisibility;
+  visibility?: MediaVisibility;
+  folderId?: number | null;
+};
+
+export type MediaFolderCreateInput = {
+  name: string;
+  parentId: number | null;
+};
+
+export type MediaFolderUpdateInput = {
+  parentId: number | null;
 };
 
 export type MediaUsageDto = {
-  productModels: number;
-  products: number;
+  productFamilies: number;
+  productVariants: number;
   brandLogos: number;
   productCategoryImages: number;
   staffAvatars: number;
@@ -58,6 +74,7 @@ export type MediaUsageDto = {
 
 export type MediaListItemDto = {
   id: number;
+  folderId: number | null;
   kind: MediaKind;
   visibility: MediaVisibility;
   storagePath: string;
@@ -84,6 +101,31 @@ export type MediaListItemDto = {
   usage: MediaUsageDto;
   createdAt: string;
   updatedAt: string;
+};
+
+export type MediaFolderSummaryDto = {
+  id: number;
+  parentId: number | null;
+  name: string;
+};
+
+export type MediaFolderListItemDto = MediaFolderSummaryDto & {
+  mediaCount: number;
+  childFolderCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MediaFolderBreadcrumbDto = {
+  id: number;
+  name: string;
+};
+
+export type MediaFolderOptionDto = {
+  id: number;
+  parentId: number | null;
+  name: string;
+  pathLabel: string;
 };
 
 export type MediaUploadBatchItemResult =
@@ -123,6 +165,10 @@ export type MediaStatsDto = {
 
 export type MediaListResult = {
   items: MediaListItemDto[];
+  currentFolder: MediaFolderSummaryDto | null;
+  breadcrumbs: MediaFolderBreadcrumbDto[];
+  folders: MediaFolderListItemDto[];
+  folderOptions: MediaFolderOptionDto[];
   total: number;
   page: number;
   pageSize: number;

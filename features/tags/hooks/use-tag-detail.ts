@@ -38,7 +38,9 @@ export function useTagDetail(tagId: number | null) {
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!tagId) return;
+    if (!tagId) {
+      return;
+    }
 
     setIsLoading(true);
     setError(null);
@@ -68,7 +70,9 @@ export function useTagDetail(tagId: number | null) {
   );
 
   const save = useCallback(async () => {
-    if (!tagId) return null;
+    if (!tagId) {
+      return null;
+    }
 
     setIsSaving(true);
     setError(null);
@@ -78,7 +82,7 @@ export function useTagDetail(tagId: number | null) {
       const updated = await updateTagClient(tagId, toPayload(form));
       setTag(updated);
       setForm(toFormState(updated));
-      setNotice("Tag mis a jour.");
+      setNotice("Tag mis à jour.");
       return updated;
     } catch (err: unknown) {
       const message =
@@ -86,7 +90,7 @@ export function useTagDetail(tagId: number | null) {
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Erreur lors de la mise a jour du tag";
+            : "Erreur lors de la mise à jour du tag";
       setError(message);
       return null;
     } finally {
@@ -95,7 +99,9 @@ export function useTagDetail(tagId: number | null) {
   }, [form, tagId]);
 
   const remove = useCallback(async () => {
-    if (!tagId) return false;
+    if (!tagId) {
+      return false;
+    }
 
     setIsDeleting(true);
     setError(null);

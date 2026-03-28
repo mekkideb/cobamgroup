@@ -40,11 +40,11 @@ async function assertUniqueTagInput(
   ]);
 
   if (sameSlug && Number(sameSlug.id) !== (options?.excludeTagId ?? -1)) {
-    throw new TagServiceError("Un tag avec ce slug existe deja.", 400);
+    throw new TagServiceError("Un tag avec ce slug existe déjà.", 400);
   }
 
   if (sameName && Number(sameName.id) !== (options?.excludeTagId ?? -1)) {
-    throw new TagServiceError("Un tag avec ce nom existe deja.", 400);
+    throw new TagServiceError("Un tag avec ce nom existe déjà.", 400);
   }
 }
 
@@ -53,7 +53,7 @@ export async function listTagsService(
   query: TagListQuery,
 ): Promise<TagListResult> {
   if (!canAccessTags(session)) {
-    throw new TagServiceError("Acces refuse.", 403);
+    throw new TagServiceError("Accès refusé.", 403);
   }
 
   const [items, total] = await Promise.all([
@@ -71,7 +71,7 @@ export async function listTagsService(
 
 export async function getTagByIdService(session: StaffSession, tagId: number) {
   if (!canAccessTags(session)) {
-    throw new TagServiceError("Acces refuse.", 403);
+    throw new TagServiceError("Accès refusé.", 403);
   }
 
   const tag = await findTagById(tagId);
@@ -87,7 +87,7 @@ export async function listTagSuggestionsService(
   query: { q?: string; limit: number },
 ): Promise<TagSuggestionResult> {
   if (session.status === "BANNED") {
-    throw new TagServiceError("Acces refuse.", 403);
+    throw new TagServiceError("Accès refusé.", 403);
   }
 
   const items = await listTagSuggestions(query);
@@ -106,7 +106,7 @@ export async function createTagService(
   input: TagCreateInput,
 ) {
   if (!canCreateTags(session)) {
-    throw new TagServiceError("Acces refuse.", 403);
+    throw new TagServiceError("Accès refusé.", 403);
   }
 
   await assertUniqueTagInput(input);
@@ -118,7 +118,7 @@ export async function createTagService(
     actionType: "CREATE",
     entityId: String(tag.id),
     targetLabel: tag.name,
-    summary: "Creation d'un nouveau tag",
+    summary: "Création d'un nouveau tag",
     afterSnapshotJson: toTagAuditSnapshot(tag),
   });
 
@@ -131,7 +131,7 @@ export async function updateTagService(
   input: TagUpdateInput,
 ) {
   if (!canManageTags(session)) {
-    throw new TagServiceError("Acces refuse.", 403);
+    throw new TagServiceError("Accès refusé.", 403);
   }
 
   const before = await findTagById(tagId);
@@ -148,7 +148,7 @@ export async function updateTagService(
     actionType: "UPDATE",
     entityId: String(tag.id),
     targetLabel: tag.name,
-    summary: "Mise a jour d'un tag",
+    summary: "Mise à jour d'un tag",
     beforeSnapshotJson: toTagAuditSnapshot(before),
     afterSnapshotJson: toTagAuditSnapshot(tag),
   });
@@ -158,7 +158,7 @@ export async function updateTagService(
 
 export async function deleteTagService(session: StaffSession, tagId: number) {
   if (!canManageTags(session)) {
-    throw new TagServiceError("Acces refuse.", 403);
+    throw new TagServiceError("Accès refusé.", 403);
   }
 
   const before = await findTagById(tagId);

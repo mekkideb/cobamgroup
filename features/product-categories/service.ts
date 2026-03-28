@@ -7,20 +7,21 @@ import {
 } from "./access";
 import {
   countProductCategories,
-  countProductModelsForCategory,
+  countProductFamiliesForCategory,
+  countProductFamiliesForSubcategories,
   createProductCategory,
   createProductCategoryAuditLog,
   deleteProductCategory,
+  findProductCategoriesBySlugs,
   findProductCategoryById,
   findProductCategoryBySlug,
+  findProductSubcategoriesByCategoryAndSlugs,
   listProductCategories,
-  listProductCategoryParentOptions,
   updateProductCategory,
 } from "./repository";
 import {
   mapProductCategoryToDetailDto,
   mapProductCategoryToListItemDto,
-  mapProductCategoryToParentOptionDto,
   toProductCategoryAuditSnapshot,
 } from "./mappers";
 import type {
@@ -47,9 +48,54 @@ async function assertUniqueProductCategorySlug(
 
   if (sameSlug && Number(sameSlug.id) !== (options?.excludeCategoryId ?? -1)) {
     throw new ProductCategoryServiceError(
-      "Une categorie de produit avec ce slug existe deja.",
+      "Une catégorie produit avec ce slug existe déjà.",
       400,
     );
+  }
+}
+
+async function assertUniqueProductSubcategorySlugs(
+  categoryId: number | null,
+  input: Pick<ProductCategoryCreateInput, "subcategories">,
+) {
+  const seenSlugs = new Set<string>();
+
+  for (const subcategory of input.subcategories) {
+    const normalizedSlug = subcategory.slug.trim();
+
+    if (seenSlugs.has(normalizedSlug)) {
+      throw new ProductCategoryServiceError(
+        "Deux sous-catégories ne peuvent pas partager le même slug dans une même catégorie.",
+        400,
+      );
+    }
+
+    seenSlugs.add(normalizedSlug);
+  }
+
+  if (categoryId == null || input.subcategories.length === 0) {
+    return;
+  }
+
+  const existing = await findProductSubcategoriesByCategoryAndSlugs({
+    categoryId,
+    slugs: input.subcategories.map((subcategory) => subcategory.slug),
+  });
+
+  const allowedIds = new Set(
+    input.subcategories
+      .map((subcategory) => subcategory.id)
+      .filter((subcategoryId): subcategoryId is number => subcategoryId != null)
+      .map(String),
+  );
+
+  for (const subcategory of existing) {
+    if (!allowedIds.has(subcategory.id.toString())) {
+      throw new ProductCategoryServiceError(
+        `Le slug de sous-catégorie "${subcategory.slug}" est déjà utilisé dans cette catégorie.`,
+        400,
+      );
+    }
   }
 }
 
@@ -61,45 +107,67 @@ async function assertValidProductCategoryImage(imageMediaId: number | null) {
   const media = await findImageMediaById(imageMediaId);
   if (!media) {
     throw new ProductCategoryServiceError(
-      "L'image selectionnee est introuvable ou invalide.",
+      "L'image de catégorie sélectionnée est introuvable ou invalide.",
       400,
     );
   }
 }
 
-async function assertValidParentCategory(
-  parentId: number | null,
-  options?: { categoryId?: number },
+async function assertValidProductSubcategoryImages(
+  input: Pick<ProductCategoryCreateInput, "subcategories">,
 ) {
-  if (parentId == null) return;
+  for (const subcategory of input.subcategories) {
+    if (subcategory.imageMediaId == null) {
+      continue;
+    }
 
-  if (options?.categoryId != null && parentId === options.categoryId) {
+    const media = await findImageMediaById(subcategory.imageMediaId);
+    if (!media) {
+      throw new ProductCategoryServiceError(
+        `L'image de la sous-catégorie "${subcategory.name}" est introuvable ou invalide.`,
+        400,
+      );
+    }
+  }
+}
+
+async function assertSafeRemovedSubcategories(
+  categoryId: number,
+  input: Pick<ProductCategoryUpdateInput, "subcategories">,
+) {
+  const before = await findProductCategoryById(categoryId);
+
+  if (!before) {
     throw new ProductCategoryServiceError(
-      "Une categorie ne peut pas etre sa propre parente.",
-      400,
+      "Catégorie produit introuvable.",
+      404,
     );
   }
 
-  let cursorId: number | null = parentId;
+  const keptIds = new Set(
+    input.subcategories
+      .map((subcategory) => subcategory.id)
+      .filter((subcategoryId): subcategoryId is number => subcategoryId != null),
+  );
 
-  while (cursorId != null) {
-    const current = await findProductCategoryById(cursorId);
+  const removedIds = before.subcategories
+    .map((subcategory) => Number(subcategory.id))
+    .filter((subcategoryId) => !keptIds.has(subcategoryId));
 
-    if (!current) {
-      throw new ProductCategoryServiceError(
-        "Categorie parente introuvable.",
-        400,
-      );
-    }
+  if (removedIds.length === 0) {
+    return;
+  }
 
-    if (options?.categoryId != null && Number(current.id) === options.categoryId) {
-      throw new ProductCategoryServiceError(
-        "Une categorie ne peut pas devenir l'enfant de l'une de ses sous-categories.",
-        400,
-      );
-    }
+  const usage = await countProductFamiliesForSubcategories(removedIds);
+  const linked = usage.find(
+    (subcategory) => subcategory._count.productFamilies > 0,
+  );
 
-    cursorId = current.parentId == null ? null : Number(current.parentId);
+  if (linked) {
+    throw new ProductCategoryServiceError(
+      `Impossible de retirer la sous-catégorie "${linked.name}" car elle est encore liée à des familles produit.`,
+      400,
+    );
   }
 }
 
@@ -108,7 +176,7 @@ export async function listProductCategoriesService(
   query: ProductCategoryListQuery,
 ): Promise<ProductCategoryListResult> {
   if (!canAccessProductCategories(session)) {
-    throw new ProductCategoryServiceError("Acces refuse.", 403);
+    throw new ProductCategoryServiceError("Accès refusé.", 403);
   }
 
   const [items, total] = await Promise.all([
@@ -124,29 +192,18 @@ export async function listProductCategoriesService(
   };
 }
 
-export async function listProductCategoryParentOptionsService(
-  session: StaffSession,
-) {
-  if (!canAccessProductCategories(session)) {
-    throw new ProductCategoryServiceError("Acces refuse.", 403);
-  }
-
-  const items = await listProductCategoryParentOptions();
-  return items.map(mapProductCategoryToParentOptionDto);
-}
-
 export async function getProductCategoryByIdService(
   session: StaffSession,
   categoryId: number,
 ) {
   if (!canAccessProductCategories(session)) {
-    throw new ProductCategoryServiceError("Acces refuse.", 403);
+    throw new ProductCategoryServiceError("Accès refusé.", 403);
   }
 
   const category = await findProductCategoryById(categoryId);
   if (!category) {
     throw new ProductCategoryServiceError(
-      "Categorie de produit introuvable.",
+      "Catégorie produit introuvable.",
       404,
     );
   }
@@ -159,12 +216,13 @@ export async function createProductCategoryService(
   input: ProductCategoryCreateInput,
 ) {
   if (!canCreateProductCategories(session)) {
-    throw new ProductCategoryServiceError("Acces refuse.", 403);
+    throw new ProductCategoryServiceError("Accès refusé.", 403);
   }
 
   await assertUniqueProductCategorySlug(input.slug);
-  await assertValidParentCategory(input.parentId);
+  await assertUniqueProductSubcategorySlugs(null, input);
   await assertValidProductCategoryImage(input.imageMediaId);
+  await assertValidProductSubcategoryImages(input);
 
   const category = await createProductCategory(input);
 
@@ -173,7 +231,7 @@ export async function createProductCategoryService(
     actionType: "CREATE",
     entityId: String(category.id),
     targetLabel: category.name,
-    summary: "Creation d'une nouvelle categorie de produit",
+    summary: "Création d'une nouvelle catégorie produit",
     afterSnapshotJson: toProductCategoryAuditSnapshot(category),
   });
 
@@ -186,13 +244,13 @@ export async function updateProductCategoryService(
   input: ProductCategoryUpdateInput,
 ) {
   if (!canManageProductCategories(session)) {
-    throw new ProductCategoryServiceError("Acces refuse.", 403);
+    throw new ProductCategoryServiceError("Accès refusé.", 403);
   }
 
   const before = await findProductCategoryById(categoryId);
   if (!before) {
     throw new ProductCategoryServiceError(
-      "Categorie de produit introuvable.",
+      "Catégorie produit introuvable.",
       404,
     );
   }
@@ -200,8 +258,10 @@ export async function updateProductCategoryService(
   await assertUniqueProductCategorySlug(input.slug, {
     excludeCategoryId: categoryId,
   });
-  await assertValidParentCategory(input.parentId, { categoryId });
+  await assertUniqueProductSubcategorySlugs(categoryId, input);
   await assertValidProductCategoryImage(input.imageMediaId);
+  await assertValidProductSubcategoryImages(input);
+  await assertSafeRemovedSubcategories(categoryId, input);
 
   const category = await updateProductCategory(categoryId, input);
 
@@ -210,7 +270,7 @@ export async function updateProductCategoryService(
     actionType: "UPDATE",
     entityId: String(category.id),
     targetLabel: category.name,
-    summary: "Mise a jour d'une categorie de produit",
+    summary: "Mise à jour d'une catégorie produit",
     beforeSnapshotJson: toProductCategoryAuditSnapshot(before),
     afterSnapshotJson: toProductCategoryAuditSnapshot(category),
   });
@@ -223,21 +283,21 @@ export async function deleteProductCategoryService(
   categoryId: number,
 ) {
   if (!canManageProductCategories(session)) {
-    throw new ProductCategoryServiceError("Acces refuse.", 403);
+    throw new ProductCategoryServiceError("Accès refusé.", 403);
   }
 
   const before = await findProductCategoryById(categoryId);
   if (!before) {
     throw new ProductCategoryServiceError(
-      "Categorie de produit introuvable.",
+      "Catégorie produit introuvable.",
       404,
     );
   }
 
-  const productModelCount = await countProductModelsForCategory(categoryId);
-  if (productModelCount > 0) {
+  const productFamilyCount = await countProductFamiliesForCategory(categoryId);
+  if (productFamilyCount > 0) {
     throw new ProductCategoryServiceError(
-      "Impossible de supprimer une categorie encore liee a des produits.",
+      "Impossible de supprimer une catégorie encore liée à des familles produit via ses sous-catégories.",
       400,
     );
   }
@@ -249,8 +309,7 @@ export async function deleteProductCategoryService(
     actionType: "DELETE",
     entityId: String(before.id),
     targetLabel: before.name,
-    summary: "Suppression d'une categorie de produit",
+    summary: "Suppression d'une catégorie produit",
     beforeSnapshotJson: toProductCategoryAuditSnapshot(before),
   });
 }
-

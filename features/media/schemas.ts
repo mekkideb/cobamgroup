@@ -2,9 +2,12 @@ import { MediaKind, MediaVisibility } from "@prisma/client";
 import {
   DEFAULT_MEDIA_PAGE_SIZE,
   MAX_MEDIA_PAGE_SIZE,
+  type MediaBrowseMode,
   type MediaFileVariant,
   type MediaFilterKind,
   type MediaFilterStatus,
+  type MediaFolderCreateInput,
+  type MediaFolderUpdateInput,
   type MediaListQuery,
   type MediaSortBy,
   type MediaSortDirection,
@@ -66,9 +69,35 @@ function parseSortDirection(value: string | null): MediaSortDirection {
   return value === "asc" ? "asc" : "desc";
 }
 
+function parseBrowseMode(value: string | null): MediaBrowseMode {
+  return value === "library" ? "library" : "folders";
+}
+
+function parseOptionalMediaFolderId(
+  value: string | number | null | undefined,
+  fieldName: string,
+): number | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === null || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new MediaValidationError(`Dossier invalide pour ${fieldName}.`);
+  }
+
+  return parsed;
+}
+
 export function parseMediaListQuery(
   searchParams: URLSearchParams,
 ): MediaListQuery {
+  const browseMode = parseBrowseMode(searchParams.get("browseMode"));
   const pageRaw = Number(searchParams.get("page") ?? "1");
   const page = Number.isInteger(pageRaw) && pageRaw > 0 ? pageRaw : 1;
 
@@ -91,9 +120,19 @@ export function parseMediaListQuery(
   const status: MediaFilterStatus =
     statusRaw === "active" || statusRaw === "inactive" ? statusRaw : "all";
 
+  const folderId =
+    browseMode === "folders"
+      ? (parseOptionalMediaFolderId(
+          searchParams.get("folderId"),
+          "folderId",
+        ) ?? null)
+      : undefined;
+
   return {
+    browseMode,
     page,
     pageSize,
+    folderId,
     q,
     kind,
     status,
@@ -120,6 +159,13 @@ export function parseMediaUploadFormData(formData: FormData): MediaUploadInput {
           ? (formData.get("visibility") as string)
           : null,
       ) ?? MediaVisibility.PRIVATE,
+    folderId:
+      parseOptionalMediaFolderId(
+        typeof formData.get("folderId") === "string"
+          ? (formData.get("folderId") as string)
+          : null,
+        "folderId",
+      ) ?? null,
   };
 }
 
@@ -128,17 +174,108 @@ export function parseMediaUpdateInput(raw: unknown): MediaUpdateInput {
     throw new MediaValidationError("Requete invalide.");
   }
 
+  const rawRecord = raw as Record<string, unknown>;
+
   const visibility =
-    "visibility" in raw && typeof raw.visibility === "string"
-      ? parseMediaVisibility(raw.visibility)
+    "visibility" in rawRecord && typeof rawRecord.visibility === "string"
+      ? parseMediaVisibility(rawRecord.visibility)
       : null;
 
-  if (!visibility) {
+  const hasFolderId = "folderId" in rawRecord;
+  const folderId = hasFolderId
+    ? parseOptionalMediaFolderId(
+        typeof rawRecord.folderId === "number" || typeof rawRecord.folderId === "string"
+          ? rawRecord.folderId
+          : rawRecord.folderId === null
+            ? null
+            : undefined,
+        "folderId",
+      )
+    : undefined;
+
+  if (!visibility && !hasFolderId) {
+    throw new MediaValidationError("Aucune modification demandee.");
+  }
+
+  if ("visibility" in rawRecord && !visibility) {
     throw new MediaValidationError("Visibilite invalide.");
   }
 
+  const result: MediaUpdateInput = {};
+
+  if (visibility) {
+    result.visibility = visibility;
+  }
+
+  if (hasFolderId) {
+    result.folderId = folderId ?? null;
+  }
+
+  return result;
+}
+
+export function parseMediaFolderCreateInput(raw: unknown): MediaFolderCreateInput {
+  if (typeof raw !== "object" || raw === null) {
+    throw new MediaValidationError("Requete invalide.");
+  }
+
+  const rawRecord = raw as Record<string, unknown>;
+  const name =
+    "name" in rawRecord && typeof rawRecord.name === "string"
+      ? rawRecord.name.trim()
+      : "";
+
+  if (!name) {
+    throw new MediaValidationError("Le nom du dossier est requis.");
+  }
+
+  if (name.length > 255) {
+    throw new MediaValidationError("Le nom du dossier est trop long.");
+  }
+
+  const parentId =
+    "parentId" in rawRecord
+      ? parseOptionalMediaFolderId(
+          typeof rawRecord.parentId === "number" ||
+          typeof rawRecord.parentId === "string"
+            ? rawRecord.parentId
+            : rawRecord.parentId === null
+              ? null
+              : undefined,
+          "parentId",
+        ) ?? null
+      : null;
+
   return {
-    visibility,
+    name,
+    parentId,
+  };
+}
+
+export function parseMediaFolderUpdateInput(raw: unknown): MediaFolderUpdateInput {
+  if (typeof raw !== "object" || raw === null) {
+    throw new MediaValidationError("Requete invalide.");
+  }
+
+  const rawRecord = raw as Record<string, unknown>;
+
+  if (!("parentId" in rawRecord)) {
+    throw new MediaValidationError("Aucune modification demandee.");
+  }
+
+  const parentId =
+    parseOptionalMediaFolderId(
+      typeof rawRecord.parentId === "number" ||
+      typeof rawRecord.parentId === "string"
+        ? rawRecord.parentId
+        : rawRecord.parentId === null
+          ? null
+          : undefined,
+      "parentId",
+    ) ?? null;
+
+  return {
+    parentId,
   };
 }
 

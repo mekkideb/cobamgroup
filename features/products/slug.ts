@@ -7,3 +7,5 @@ export function slugifyProductName(input: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+export const slugifyProductReference = slugifyProductName;

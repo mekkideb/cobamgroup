@@ -11,7 +11,7 @@ import type { BrandListItemDto, BrandShowcasePlacement } from "@/features/brands
 import { usePathname } from "next/navigation";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
-const columns = ["Marque", "Diffusion", "Produits", "Mise a jour", "Actions"];
+const columns = ["Marque", "Diffusion", "Produits", "Mise à jour", "Actions"];
 
 function getDescriptionPreview(brand: BrandListItemDto) {
   if (!brand.description) {
@@ -33,7 +33,7 @@ function getShowcaseBadge(placement: BrandShowcasePlacement) {
       };
     case "REFERENCE":
       return {
-        label: "Reference",
+        label: "Référence",
         color: "indigo" as const,
         icon: "badge-check" as const,
       };
@@ -99,7 +99,7 @@ export default function BrandsListPage() {
             icon="plus"
             iconPosition="left"
           >
-            Creer une marque
+            Créer une marque
           </AnimatedUIButton>
         ) : null}
       </StaffPageHeader>
@@ -119,7 +119,7 @@ export default function BrandsListPage() {
         isLoading={isLoading}
         error={error}
         isEmpty={items.length === 0}
-        emptyMessage="Aucune marque ne correspond a ces criteres."
+        emptyMessage="Aucune marque ne correspond à ces critères."
         pagination={{
           goPrev,
           goNext,
@@ -181,7 +181,7 @@ export default function BrandsListPage() {
                   icon="modify"
                   iconPosition="left"
                 >
-                  Voir / Modifier
+                  Modifier
                 </AnimatedUIButton>
               </td>
             </tr>

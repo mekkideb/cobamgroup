@@ -26,6 +26,7 @@ export default function StaffSearchSelect({
   fullWidth = false,
   triggerClassName,
   contentClassName,
+  id,
 }: {
   value: string;
   onValueChange: (value: string) => void;
@@ -38,6 +39,7 @@ export default function StaffSearchSelect({
   fullWidth?: boolean;
   triggerClassName?: string;
   contentClassName?: string;
+  id?: string
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -114,7 +116,7 @@ export default function StaffSearchSelect({
           </div>
         </div>
 
-        <div className="max-h-72 overflow-y-auto p-1.5">
+        <div id={id} className="max-h-72 overflow-y-auto p-1.5">
           {emptyLabel ? (
             <button
               type="button"

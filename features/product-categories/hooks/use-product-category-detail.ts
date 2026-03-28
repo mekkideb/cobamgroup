@@ -1,10 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   deleteProductCategoryClient,
   getProductCategoryByIdClient,
-  listProductCategoryParentOptionsClient,
   ProductCategoriesClientError,
   updateProductCategoryClient,
 } from "../client";
@@ -14,19 +13,16 @@ import {
   productCategoryEditorFormToPayload,
   type ProductCategoryEditorFormState,
 } from "../form";
-import type {
-  ProductCategoryDetailDto,
-  ProductCategoryParentOptionDto,
-} from "../types";
+import type { ProductCategoryDetailDto } from "../types";
 
 export function useProductCategoryDetail(categoryId: number | null) {
   const [category, setCategory] = useState<ProductCategoryDetailDto | null>(null);
   const [form, setForm] = useState<ProductCategoryEditorFormState>(
     createEmptyProductCategoryEditorFormState(),
   );
-  const [parentOptions, setParentOptions] = useState<
-    ProductCategoryParentOptionDto[]
-  >([]);
+  const [savedForm, setSavedForm] = useState<ProductCategoryEditorFormState>(
+    createEmptyProductCategoryEditorFormState(),
+  );
   const [isLoading, setIsLoading] = useState(Boolean(categoryId));
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -40,21 +36,16 @@ export function useProductCategoryDetail(categoryId: number | null) {
     setError(null);
 
     try {
-      const [fetchedCategory, fetchedParentOptions] = await Promise.all([
-        getProductCategoryByIdClient(categoryId),
-        listProductCategoryParentOptionsClient(),
-      ]);
-
+      const fetchedCategory = await getProductCategoryByIdClient(categoryId);
+      const nextForm = productCategoryDetailToFormState(fetchedCategory);
       setCategory(fetchedCategory);
-      setForm(productCategoryDetailToFormState(fetchedCategory));
-      setParentOptions(
-        fetchedParentOptions.filter((item) => item.id !== categoryId),
-      );
+      setForm(nextForm);
+      setSavedForm(nextForm);
     } catch (err: unknown) {
       const message =
         err instanceof Error
           ? err.message
-          : "Erreur lors du chargement de la categorie de produit";
+          : "Erreur lors du chargement de la catégorie produit";
       setError(message);
     } finally {
       setIsLoading(false);
@@ -87,9 +78,11 @@ export function useProductCategoryDetail(categoryId: number | null) {
         categoryId,
         productCategoryEditorFormToPayload(form),
       );
+      const nextForm = productCategoryDetailToFormState(updated);
       setCategory(updated);
-      setForm(productCategoryDetailToFormState(updated));
-      setNotice("Categorie de produit mise a jour.");
+      setForm(nextForm);
+      setSavedForm(nextForm);
+      setNotice("Catégorie produit mise à jour.");
       return updated;
     } catch (err: unknown) {
       const message =
@@ -97,7 +90,7 @@ export function useProductCategoryDetail(categoryId: number | null) {
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Erreur lors de la mise a jour de la categorie de produit";
+            : "Erreur lors de la mise à jour de la catégorie produit";
       setError(message);
       return null;
     } finally {
@@ -121,7 +114,7 @@ export function useProductCategoryDetail(categoryId: number | null) {
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Erreur lors de la suppression de la categorie de produit";
+            : "Erreur lors de la suppression de la catégorie produit";
       setError(message);
       return false;
     } finally {
@@ -129,10 +122,15 @@ export function useProductCategoryDetail(categoryId: number | null) {
     }
   }, [categoryId]);
 
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(savedForm),
+    [form, savedForm],
+  );
+
   return {
     category,
     form,
-    parentOptions,
+    isDirty,
     isLoading,
     isSaving,
     isDeleting,

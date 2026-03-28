@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Users } from "lucide-react";
 import { toast } from "sonner";
 import PersonalDetailsForm, {
   PersonalFormState,
@@ -76,7 +75,7 @@ export default function CreateUserPage() {
     setError(null);
 
     if (!canCreate) {
-      setError("Acces refuse");
+      setError("Accès refusé");
       return;
     }
 
@@ -123,7 +122,7 @@ export default function CreateUserPage() {
         },
       });
 
-      toast.success("Utilisateur cree.");
+      toast.success("Utilisateur créé.");
       router.replace(`/espace/staff/administration/membres/${user.id}`);
     } catch (err: unknown) {
       const message =
@@ -131,7 +130,7 @@ export default function CreateUserPage() {
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Erreur lors de la creation";
+            : "Erreur lors de la création";
       setError(message);
       toast.error(message);
     } finally {
@@ -143,13 +142,13 @@ export default function CreateUserPage() {
     return (
       <div className="max-w-md mx-auto rounded-2xl border border-red-100 bg-white p-6 shadow-sm">
         <h1 className="text-lg font-semibold text-cobam-dark-blue mb-2">
-          Acces refuse
+          Accès refusé
         </h1>
         <p className="text-sm text-slate-600 mb-4">
-          Vous n&apos;avez pas l&apos;autorisation de creer des utilisateurs.
+          Vous n&apos;avez pas l&apos;autorisation de créer des utilisateurs.
         </p>
         <Link
-          href="/espace/staff/gestion/users"
+          href="/espace/staff/administration/membres"
           className="inline-flex items-center gap-2 rounded-xl bg-cobam-dark-blue px-4 py-2.5 text-sm font-semibold text-white hover:bg-cobam-water-blue transition-colors"
         >
           Retour
@@ -179,7 +178,7 @@ export default function CreateUserPage() {
 
       <StaffPageHeader
         eyebrow="Utilisateurs"
-        title="Creation de compte"
+        title="Création de compte"
       />
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
@@ -192,7 +191,7 @@ export default function CreateUserPage() {
             title="Informations personnelles"
             pretitle="Profil"
             description="Renseignez les informations principales du compte."
-            submitLabel="Creer l'utilisateur"
+            submitLabel="Créer l'utilisateur"
           />
 
           <SecurityForm
@@ -214,10 +213,10 @@ export default function CreateUserPage() {
             requireActualPassword={false}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
-            submitLabel="Creer l'utilisateur"
-            pretitle="Securite"
+            submitLabel="Créer l'utilisateur"
+            pretitle="Sécurité"
             title="Mot de passe initial"
-            description="Definissez un mot de passe pour ce compte."
+            description="Définissez un mot de passe pour ce compte."
           />
         </div>
 
@@ -236,7 +235,7 @@ export default function CreateUserPage() {
             onToggleRole={handleToggleRole}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
-            submitLabel="Creer l'utilisateur"
+            submitLabel="Créer l'utilisateur"
           />
 
           <PersonalDetailsPreviewAndAvatar

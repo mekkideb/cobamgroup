@@ -1,20 +1,21 @@
 "use client";
 
 import { useCallback } from "react";
-import { Search } from "lucide-react";
 import Avatar from "@/components/staff/ui/Avatar";
 import PanelTable from "@/components/staff/ui/PanelTable";
 import { StaffBadge, StaffFilterBar, StaffPageHeader, StaffSelect } from "@/components/staff/ui";
 import { AnimatedUIButton } from "@/components/ui/custom/Buttons";
+import { isHexColor } from "@/components/ui/custom/animated-ui.shared";
 import { useStaffSessionContext } from "@/features/auth/client/staff-session-provider";
 import { hasPermission } from "@/features/rbac/access";
 import { PERMISSIONS } from "@/features/rbac/permissions";
 import { useRolesList } from "@/features/roles/hooks/use-roles-list";
 import { useUsersList } from "@/features/users/hooks/use-users-list";
 import type { StaffUserListItemDto } from "@/features/users/types";
+import SearchInput from "@/components/staff/ui/SearchInput";
 
 const PAGE_SIZE_OPTIONS: Array<10 | 20 | 50> = [10, 20, 50];
-const columns = ["Utilisateur", "Acces", "Poste", "Cree le", "Actions"];
+const columns = ["Utilisateur", "Accès", "Poste", "Créé le", "Actions"];
 
 function getDisplayName(user: StaffUserListItemDto) {
   const first = user.profile?.firstName?.trim() || "";
@@ -40,24 +41,32 @@ function getUserStatusBadge(isBanned: boolean) {
 }
 
 function getAccessBadge(user: StaffUserListItemDto) {
+  const fallbackColor =
+    user.powerType === "ROOT"
+      ? "rose"
+      : user.powerType === "ADMIN"
+        ? "violet"
+        : "blue";
+  const roleColor = isHexColor(user.roleColor) ? user.roleColor : fallbackColor;
+
   switch (user.powerType) {
     case "ROOT":
       return {
         label: user.roleLabel,
-        color: "rose" as const,
+        color: roleColor,
         icon: "shield" as const,
       };
     case "ADMIN":
       return {
         label: user.roleLabel,
-        color: "violet" as const,
+        color: roleColor,
         icon: "shield" as const,
       };
     case "STAFF":
     default:
       return {
         label: user.roleLabel,
-        color: "blue" as const,
+        color: roleColor,
         icon: "user" as const,
       };
   }
@@ -126,56 +135,39 @@ export default function UsersListPage() {
             icon="plus"
             iconPosition="left"
           >
-            Creer un utilisateur
+            Créer un utilisateur
           </AnimatedUIButton>
         ) : null}
       </StaffPageHeader>
 
       <form onSubmit={handleSubmit}>
-        <StaffFilterBar
-          summary={
-            <span>
-              {total} utilisateur{total > 1 ? "s" : ""} - Page {page}/{totalPages}
-            </span>
-          }
-        >
-          <div className="relative w-full sm:max-w-xs">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Rechercher par email, nom, poste..."
-              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm focus:border-cobam-water-blue focus:outline-none focus:ring-2 focus:ring-cobam-water-blue/40"
-            />
-          </div>
-
-          <div className="w-full sm:w-48">
-            <StaffSelect
-              value={powerType}
-              onValueChange={(value) =>
-                void handlePowerTypeChange(value as "" | "ROOT" | "ADMIN" | "STAFF")
-              }
-              emptyLabel="Tous les pouvoirs"
-              options={[
-                { value: "ROOT", label: "Root" },
-                { value: "ADMIN", label: "Admin" },
-                { value: "STAFF", label: "Staff" },
-              ]}
-            />
-          </div>
-
-          <div className="w-full sm:w-56">
-            <StaffSelect
-              value={roleKey}
-              onValueChange={(value) => void handleRoleChange(value)}
-              emptyLabel="Tous les roles"
-              options={roles.map((role) => ({
-                value: role.key,
-                label: role.name,
-              }))}
-            />
-          </div>
+        <StaffFilterBar>
+          <SearchInput
+            onChange={(s: string) => setSearch(s)} 
+            placeholder="Rechercher par email, nom, poste..." 
+            value={search}
+          />
+          <StaffSelect
+            value={powerType}
+            onValueChange={(value) =>
+              void handlePowerTypeChange(value as "" | "ROOT" | "ADMIN" | "STAFF")
+            }
+            emptyLabel="Tous les pouvoirs"
+            options={[
+              { value: "ROOT", label: "Root" },
+              { value: "ADMIN", label: "Admin" },
+              { value: "STAFF", label: "Staff" },
+            ]}
+          />
+          <StaffSelect
+            value={roleKey}
+            onValueChange={(value) => void handleRoleChange(value)}
+            emptyLabel="Tous les rôles"
+            options={roles.map((role) => ({
+              value: role.key,
+              label: role.name,
+            }))}
+          />
         </StaffFilterBar>
       </form>
 
@@ -184,7 +176,7 @@ export default function UsersListPage() {
         isLoading={isLoading}
         error={error}
         isEmpty={items.length === 0}
-        emptyMessage="Aucun utilisateur ne correspond a ces criteres."
+        emptyMessage="Aucun utilisateur ne correspond à ces critères."
         pagination={{
           goPrev,
           goNext,
@@ -255,7 +247,7 @@ export default function UsersListPage() {
                   icon="modify"
                   iconPosition="left"
                 >
-                  Voir / Editer
+                  Voir / Éditer
                 </AnimatedUIButton>
               </td>
             </tr>

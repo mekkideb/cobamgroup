@@ -14,19 +14,19 @@ const usefulLinks = [
 
 const recentActions = [
   {
-    label: 'Article "Nouvelle collection 2026" publie',
+    label: 'Article "Nouvelle collection 2026" publié',
     time: "Il y a 2 heures",
   },
   {
-    label: 'Produit "Carrelage Tessino Gris" mis a jour',
+    label: 'Produit "Carrelage Tessino Gris" mis à jour',
     time: "Hier",
   },
   {
-    label: 'Marque "Geberit" ajoutee au portail marques',
+    label: 'Marque "Geberit" ajoutée au portail marques',
     time: "Il y a 3 jours",
   },
   {
-    label: 'Media "Showroom Houmt Souk" importe',
+    label: 'Média "Showroom Houmt Souk" importé',
     time: "Il y a 1 semaine",
   },
 ];
@@ -45,13 +45,13 @@ export default function EspaceStaffPage() {
           Session invalide
         </h1>
         <p className="mb-4 text-sm text-slate-600">
-          {error || "Votre session a expire. Veuillez vous reconnecter."}
+          {error || "Votre session a expiré. Veuillez vous reconnecter."}
         </p>
         <a
           href="/login/staff"
           className="inline-flex items-center justify-center rounded-xl bg-cobam-dark-blue px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-cobam-water-blue"
         >
-          Retour a la connexion
+          Retour à la connexion
         </a>
       </div>
     );
@@ -61,8 +61,8 @@ export default function EspaceStaffPage() {
     return (
       <Panel
         pretitle="Compte"
-        title="Acces restreint"
-        description="Votre compte est actuellement banni. Vous pouvez encore consulter et mettre a jour vos informations personnelles."
+        title="Accès restreint"
+        description="Votre compte est actuellement banni. Vous pouvez encore consulter et mettre à jour vos informations personnelles."
       >
         <StaffBadge size="lg" color="amber" icon="warning">
           Statut : banni
@@ -96,10 +96,10 @@ export default function EspaceStaffPage() {
             user.profile?.firstName || user.profile?.lastName || user.email
           }`}
           title="Bienvenue dans l'espace professionnel"
-          description="Gerez les contenus et les operations autorisees selon votre niveau d'acces."
+          description="Gérez les contenus et les opérations autorisées selon votre niveau d'accès."
         >
           <StaffBadge size="lg" color={accessColor} icon={accessIcon}>
-            Acces : {user.roleLabel}
+            Accès : {user.roleLabel}
           </StaffBadge>
         </Panel>
       </section>
@@ -107,7 +107,7 @@ export default function EspaceStaffPage() {
       <section className="grid items-start gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-7">
           <h3 className="mb-4 text-sm font-semibold text-cobam-dark-blue">
-            Actions recentes
+            Actions récentes
           </h3>
           <ul className="space-y-3 text-sm">
             {recentActions.map((action) => (

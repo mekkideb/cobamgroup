@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { staffApiFetch } from "@/lib/api/auth/staff/api-fetch";
 import Loading from "@/components/staff/Loading";
@@ -9,9 +8,12 @@ import PersonalDetailsForm, {
   PersonalFormState,
 } from "@/components/staff/ui/PersonalDetailsForm";
 import PersonalDetailsPreviewAndAvatar from "@/components/staff/ui/PersonalDetailsPreviewAndAvatar";
-import { findKnownJobTitle, OTHER_JOB_TITLE_VALUE } from "@/features/users/constants/job-titles";
-import { AnimatedUIButton } from "@/components/ui/custom/Buttons";
 import { StaffPageHeader } from "@/components/staff/ui";
+import { AnimatedUIButton } from "@/components/ui/custom/Buttons";
+import {
+  findKnownJobTitle,
+  OTHER_JOB_TITLE_VALUE,
+} from "@/features/users/constants/job-titles";
 
 type MeResponse = {
   ok: boolean;
@@ -73,7 +75,8 @@ export default function PersonalDetailsPage() {
           firstName: profile?.firstName || "",
           lastName: profile?.lastName || "",
           email: user.email,
-          jobTitleSelect: knownTitle || (incomingJobTitle ? OTHER_JOB_TITLE_VALUE : ""),
+          jobTitleSelect:
+            knownTitle || (incomingJobTitle ? OTHER_JOB_TITLE_VALUE : ""),
           jobTitleOther: knownTitle ? "" : incomingJobTitle,
           phone: profile?.phone || "",
           birthDate: profile?.birthDate
@@ -83,10 +86,11 @@ export default function PersonalDetailsPage() {
           bio: profile?.bio || "",
         });
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Erreur inconnue";
+        const message =
+          err instanceof Error ? err.message : "Erreur inconnue";
         setError(message);
         toast.error("Erreur lors du chargement du profil", {
-          description: message || "Veuillez reessayer plus tard.",
+          description: message || "Veuillez réessayer plus tard.",
         });
       } finally {
         setIsLoading(false);
@@ -104,7 +108,8 @@ export default function PersonalDetailsPage() {
       !form.jobTitleOther.trim()
     ) {
       toast.error("Poste manquant", {
-        description: "Veuillez renseigner le poste si vous choisissez Autres.",
+        description:
+          "Veuillez renseigner le poste si vous choisissez Autres.",
       });
       return;
     }
@@ -133,52 +138,52 @@ export default function PersonalDetailsPage() {
       const data = await res.json().catch(() => null);
 
       if (!res.ok || !data?.ok) {
-        throw new Error(data?.message || "Erreur lors de la mise a jour");
+        throw new Error(data?.message || "Erreur lors de la mise à jour");
       }
 
-      toast.success("Profil mis a jour", {
-        description: "Vos informations ont ete enregistrees avec succes.",
+      toast.success("Profil mis à jour", {
+        description: "Vos informations ont été enregistrées avec succès.",
       });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erreur inconnue";
+      const message =
+        err instanceof Error ? err.message : "Erreur inconnue";
       setError(message);
-      toast.error("Erreur lors de la mise a jour", {
-        description: message || "Veuillez reessayer plus tard.",
+      toast.error("Erreur lors de la mise à jour", {
+        description: message || "Veuillez réessayer plus tard.",
       });
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (isLoading) return <Loading />;
+  if (isLoading) {
+    return <Loading />;
+  }
 
   return (
     <div className="space-y-5">
-      <StaffPageHeader
-        eyebrow="Mon compte"
-        title="Details personnels"
-      >
-      <AnimatedUIButton
-        type="button"
-        onClick={handleSubmit}
-        disabled={isSaving}
-        loading={isSaving}
-        loadingText="Enregistrement..."
-        icon="save"
-        variant="secondary"
-      >
-        Enregistrer
-      </AnimatedUIButton>
-    </StaffPageHeader>
+      <StaffPageHeader eyebrow="Mon compte" title="Détails personnels">
+        <AnimatedUIButton
+          type="button"
+          onClick={handleSubmit}
+          disabled={isSaving}
+          loading={isSaving}
+          loadingText="Enregistrement..."
+          icon="save"
+          variant="secondary"
+        >
+          Enregistrer
+        </AnimatedUIButton>
+      </StaffPageHeader>
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <PersonalDetailsForm
           state={form}
           onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
           disableEmail
-          title="Details personnels"
+          title="Détails personnels"
           pretitle="Mon compte"
-          description="Gerez vos informations de profil pour le portail staff."
+          description="Gérez vos informations de profil pour le portail staff."
         />
 
         <PersonalDetailsPreviewAndAvatar

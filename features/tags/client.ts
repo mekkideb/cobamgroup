@@ -45,9 +45,15 @@ function buildListParams(params: {
 }) {
   const search = new URLSearchParams();
 
-  if (params.page != null) search.set("page", String(params.page));
-  if (params.pageSize != null) search.set("pageSize", String(params.pageSize));
-  if (params.q?.trim()) search.set("q", params.q.trim());
+  if (params.page != null) {
+    search.set("page", String(params.page));
+  }
+  if (params.pageSize != null) {
+    search.set("pageSize", String(params.pageSize));
+  }
+  if (params.q?.trim()) {
+    search.set("q", params.q.trim());
+  }
 
   return search.toString();
 }
@@ -107,7 +113,8 @@ export async function listTagSuggestionsClient(params: {
 
   if (!res.ok || !data?.ok) {
     throw new TagsClientError(
-      getErrorMessage(data) || "Erreur lors du chargement des suggestions de tags",
+      getErrorMessage(data) ||
+        "Erreur lors du chargement des suggestions de tags",
       res.status,
     );
   }
@@ -135,7 +142,9 @@ export async function getTagByIdClient(tagId: number): Promise<TagDetailDto> {
   return data.tag;
 }
 
-export async function createTagClient(input: TagCreateInput): Promise<TagDetailDto> {
+export async function createTagClient(
+  input: TagCreateInput,
+): Promise<TagDetailDto> {
   const res = await staffApiFetch("/api/staff/tags", {
     method: "POST",
     auth: true,
@@ -147,7 +156,7 @@ export async function createTagClient(input: TagCreateInput): Promise<TagDetailD
 
   if (!res.ok || !data?.ok || !data.tag) {
     throw new TagsClientError(
-      getErrorMessage(data) || "Erreur lors de la creation du tag",
+      getErrorMessage(data) || "Erreur lors de la création du tag",
       res.status,
     );
   }
@@ -170,7 +179,7 @@ export async function updateTagClient(
 
   if (!res.ok || !data?.ok || !data.tag) {
     throw new TagsClientError(
-      getErrorMessage(data) || "Erreur lors de la mise a jour du tag",
+      getErrorMessage(data) || "Erreur lors de la mise à jour du tag",
       res.status,
     );
   }
@@ -193,4 +202,3 @@ export async function deleteTagClient(tagId: number): Promise<void> {
     );
   }
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   deleteProductClient,
   getProductByIdClient,
@@ -9,9 +9,14 @@ import {
   updateProductClient,
 } from "../client";
 import {
+  createEmptyProductAttributeEditorState,
+  createEmptyProductVariantEditorState,
   createEmptyProductEditorFormState,
+  duplicateProductVariantEditorState,
+  moveProductVariantEditorStates,
   productDetailToFormState,
   productEditorFormToPayload,
+  syncVariantAttributeValueEditorStates,
   type ProductEditorFormState,
 } from "../form";
 import {
@@ -25,6 +30,9 @@ type EditableField = keyof ProductEditorFormState;
 export function useProductDetail(productId: number | null) {
   const [product, setProduct] = useState<ProductDetailDto | null>(null);
   const [form, setForm] = useState<ProductEditorFormState>(
+    createEmptyProductEditorFormState(),
+  );
+  const [savedForm, setSavedForm] = useState<ProductEditorFormState>(
     createEmptyProductEditorFormState(),
   );
   const [options, setOptions] = useState<ProductFormOptionsDto>(
@@ -48,9 +56,11 @@ export function useProductDetail(productId: number | null) {
         getProductFormOptionsClient(),
       ]);
 
-      const normalizedOptions = fetchedOptions.brands.some(
-        (brand) => brand.id === fetchedProduct.brand.id,
-      )
+      const normalizedOptions =
+        fetchedProduct.brand == null ||
+        fetchedOptions.brands.some(
+          (brand) => brand.id === fetchedProduct.brand?.id,
+        )
         ? fetchedOptions
         : {
             ...fetchedOptions,
@@ -59,9 +69,40 @@ export function useProductDetail(productId: number | null) {
             ),
           };
 
+      const missingProductSubcategories = fetchedProduct.productSubcategories.filter(
+        (subcategory) =>
+          !normalizedOptions.productSubcategories.some(
+            (option) => option.id === subcategory.id,
+          ),
+      );
+
+      const normalizedProductSubcategories =
+        missingProductSubcategories.length === 0
+          ? normalizedOptions.productSubcategories
+          : [
+              ...normalizedOptions.productSubcategories,
+              ...missingProductSubcategories,
+            ].sort((left, right) => {
+              const categoryDelta = left.categoryName.localeCompare(
+                right.categoryName,
+                "fr",
+              );
+
+              if (categoryDelta !== 0) {
+                return categoryDelta;
+              }
+
+              return left.name.localeCompare(right.name, "fr");
+            });
+
+      const nextForm = productDetailToFormState(fetchedProduct);
       setProduct(fetchedProduct);
-      setForm(productDetailToFormState(fetchedProduct));
-      setOptions(normalizedOptions);
+      setForm(nextForm);
+      setSavedForm(nextForm);
+      setOptions({
+        ...normalizedOptions,
+        productSubcategories: normalizedProductSubcategories,
+      });
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Erreur lors du chargement du produit";
@@ -94,9 +135,11 @@ export function useProductDetail(productId: number | null) {
         productId,
         productEditorFormToPayload(form),
       );
+      const nextForm = productDetailToFormState(updated);
       setProduct(updated);
-      setForm(productDetailToFormState(updated));
-      setNotice("Produit mis a jour.");
+      setForm(nextForm);
+      setSavedForm(nextForm);
+      setNotice("Famille produit mise à jour.");
       return updated;
     } catch (err: unknown) {
       const message =
@@ -104,7 +147,7 @@ export function useProductDetail(productId: number | null) {
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Erreur lors de la mise a jour du produit";
+            : "Erreur lors de la mise à jour de la famille produit";
       setError(message);
       return null;
     } finally {
@@ -128,7 +171,7 @@ export function useProductDetail(productId: number | null) {
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Erreur lors de la suppression du produit";
+            : "Erreur lors de la suppression de la famille produit";
       setError(message);
       return false;
     } finally {
@@ -136,9 +179,192 @@ export function useProductDetail(productId: number | null) {
     }
   }, [productId]);
 
+  const addVariant = useCallback(() => {
+    setForm((prev) => ({
+      ...prev,
+      variants: [
+        ...prev.variants,
+        createEmptyProductVariantEditorState({
+          lifecycleStatus: prev.lifecycleStatus,
+          visibility: prev.visibility,
+          attributeValues: syncVariantAttributeValueEditorStates(
+            prev.attributes,
+            [],
+          ),
+        }),
+      ],
+    }));
+  }, []);
+
+  const addAttribute = useCallback(() => {
+    setForm((prev) => {
+      const nextAttributes = [
+        ...prev.attributes,
+        createEmptyProductAttributeEditorState({
+          sortOrder: String(prev.attributes.length),
+        }),
+      ];
+
+      return {
+        ...prev,
+        attributes: nextAttributes,
+        variants: prev.variants.map((variant) => ({
+          ...variant,
+          attributeValues: syncVariantAttributeValueEditorStates(
+            nextAttributes,
+            variant.attributeValues,
+          ),
+        })),
+      };
+    });
+  }, []);
+
+  const removeAttribute = useCallback((formKey: string) => {
+    setForm((prev) => {
+      const nextAttributes = prev.attributes.filter(
+        (attribute) => attribute.formKey !== formKey,
+      );
+
+      return {
+        ...prev,
+        attributes: nextAttributes,
+        variants: prev.variants.map((variant) => ({
+          ...variant,
+          attributeValues: syncVariantAttributeValueEditorStates(
+            nextAttributes,
+            variant.attributeValues,
+          ),
+        })),
+      };
+    });
+  }, []);
+
+  const setAttributeField = useCallback(
+    <Field extends keyof ProductEditorFormState["attributes"][number]>(
+      formKey: string,
+      field: Field,
+      value: ProductEditorFormState["attributes"][number][Field],
+    ) => {
+      setForm((prev) => {
+        const nextAttributes = prev.attributes.map((attribute) =>
+          attribute.formKey === formKey
+            ? { ...attribute, [field]: value }
+            : attribute,
+        );
+
+        return {
+          ...prev,
+          attributes: nextAttributes,
+          variants:
+            field === "dataType"
+              ? prev.variants.map((variant) => ({
+                  ...variant,
+                  attributeValues: syncVariantAttributeValueEditorStates(
+                    nextAttributes,
+                    variant.attributeValues.map((attributeValue) =>
+                      attributeValue.attributeFormKey === formKey
+                        ? { ...attributeValue, value: "" }
+                        : attributeValue,
+                    ),
+                  ),
+                }))
+              : prev.variants.map((variant) => ({
+                  ...variant,
+                  attributeValues: syncVariantAttributeValueEditorStates(
+                    nextAttributes,
+                    variant.attributeValues,
+                  ),
+                })),
+        };
+      });
+    },
+    [],
+  );
+
+  const removeVariant = useCallback((formKey: string) => {
+    setForm((prev) => ({
+      ...prev,
+      variants: prev.variants.filter((variant) => variant.formKey !== formKey),
+    }));
+  }, []);
+
+  const duplicateVariant = useCallback((formKey: string) => {
+    setForm((prev) => {
+      const sourceVariant = prev.variants.find(
+        (variant) => variant.formKey === formKey,
+      );
+
+      if (!sourceVariant) {
+        return prev;
+      }
+
+      const insertIndex = prev.variants.findIndex(
+        (variant) => variant.formKey === formKey,
+      );
+      const duplicatedVariant = duplicateProductVariantEditorState(sourceVariant);
+      const nextVariants = [...prev.variants];
+      nextVariants.splice(insertIndex + 1, 0, duplicatedVariant);
+
+      return {
+        ...prev,
+        variants: nextVariants,
+      };
+    });
+  }, []);
+
+  const moveVariant = useCallback((formKey: string, direction: "up" | "down") => {
+    setForm((prev) => ({
+      ...prev,
+      variants: moveProductVariantEditorStates(prev.variants, formKey, direction),
+    }));
+  }, []);
+
+  const setVariantField = useCallback(
+    <Field extends keyof ProductEditorFormState["variants"][number]>(
+      formKey: string,
+      field: Field,
+      value: ProductEditorFormState["variants"][number][Field],
+    ) => {
+      setForm((prev) => ({
+        ...prev,
+        variants: prev.variants.map((variant) =>
+          variant.formKey === formKey ? { ...variant, [field]: value } : variant,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const setVariantAttributeValue = useCallback(
+    (formKey: string, attributeFormKey: string, value: string) => {
+      setForm((prev) => ({
+        ...prev,
+        variants: prev.variants.map((variant) =>
+          variant.formKey === formKey
+            ? {
+                ...variant,
+                attributeValues: variant.attributeValues.map((attributeValue) =>
+                  attributeValue.attributeFormKey === attributeFormKey
+                    ? { ...attributeValue, value }
+                    : attributeValue,
+                ),
+              }
+            : variant,
+        ),
+      }));
+    },
+    [],
+  );
+
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(savedForm),
+    [form, savedForm],
+  );
+
   return {
     product,
     form,
+    isDirty,
     options,
     isLoading,
     isSaving,
@@ -146,6 +372,15 @@ export function useProductDetail(productId: number | null) {
     error,
     notice,
     setField,
+    addAttribute,
+    removeAttribute,
+    setAttributeField,
+    addVariant,
+    removeVariant,
+    duplicateVariant,
+    moveVariant,
+    setVariantField,
+    setVariantAttributeValue,
     save,
     remove,
     reload: load,

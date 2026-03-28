@@ -4,7 +4,7 @@ import type { TagDetailDto, TagListItemDto } from "./types";
 type TagWithCounts = Tag & {
   _count: {
     articleLinks: number;
-    productModelLinks: number;
+    productFamilyLinks: number;
   };
 };
 
@@ -14,7 +14,7 @@ export function mapTagToListItemDto(tag: TagWithCounts): TagListItemDto {
     name: tag.name,
     slug: tag.slug,
     articleCount: tag._count.articleLinks,
-    productModelCount: tag._count.productModelLinks,
+    productFamilyCount: tag._count.productFamilyLinks,
     createdAt: tag.createdAt.toISOString(),
     updatedAt: tag.updatedAt.toISOString(),
   };

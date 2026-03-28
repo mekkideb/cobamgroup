@@ -2,8 +2,13 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ListTree } from "lucide-react";
+import { usePathname } from "next/navigation";
 import Loading from "@/components/staff/Loading";
-import { StaffFilterBar, StaffNotice, StaffPageHeader } from "@/components/staff/ui";
+import {
+  StaffFilterBar,
+  StaffNotice,
+  StaffPageHeader,
+} from "@/components/staff/ui";
 import { AnimatedUIButton } from "@/components/ui/custom/Buttons";
 import { useStaffSessionContext } from "@/features/auth/client/staff-session-provider";
 import { canCreateProductCategories } from "@/features/product-categories/access";
@@ -13,7 +18,6 @@ import {
 } from "@/features/product-categories/components/product-category-tree";
 import { useProductCategoriesTree } from "@/features/product-categories/hooks/use-product-categories-tree";
 import type { ProductCategoryListItemDto } from "@/features/product-categories/types";
-import { usePathname } from "next/navigation";
 
 function sortCategories(
   left: ProductCategoryListItemDto,
@@ -28,63 +32,68 @@ function sortCategories(
   return left.name.localeCompare(right.name, "fr-FR");
 }
 
+function sortSubcategories(
+  left: ProductCategoryListItemDto["subcategories"][number],
+  right: ProductCategoryListItemDto["subcategories"][number],
+) {
+  const sortOrderDelta = left.sortOrder - right.sortOrder;
+
+  if (sortOrderDelta !== 0) {
+    return sortOrderDelta;
+  }
+
+  return left.name.localeCompare(right.name, "fr-FR");
+}
+
 function buildCategoryTree(
   items: ProductCategoryListItemDto[],
 ): ProductCategoryTreeNode[] {
-  const sortedItems = [...items].sort(sortCategories);
-  const nodes = new Map<number, ProductCategoryTreeNode>(
-    sortedItems.map((item) => [item.id, { ...item, children: [] }]),
-  );
-  const roots: ProductCategoryTreeNode[] = [];
-
-  for (const item of sortedItems) {
-    const node = nodes.get(item.id);
-
-    if (!node) {
-      continue;
-    }
-
-    if (item.parentId != null) {
-      const parentNode = nodes.get(item.parentId);
-
-      if (parentNode) {
-        parentNode.children.push(node);
-        continue;
-      }
-    }
-
-    roots.push(node);
-  }
-
-  const sortTree = (treeNodes: ProductCategoryTreeNode[]) => {
-    treeNodes.sort(sortCategories);
-
-    for (const treeNode of treeNodes) {
-      if (treeNode.children.length > 0) {
-        sortTree(treeNode.children);
-      }
-    }
-
-    return treeNodes;
-  };
-
-  return sortTree(roots);
+  return [...items]
+    .sort(sortCategories)
+    .map((item) => ({
+      ...item,
+      subcategories: [...item.subcategories].sort(sortSubcategories),
+    }));
 }
 
 function collectExpandableIds(nodes: ProductCategoryTreeNode[]): number[] {
-  const ids: number[] = [];
+  return nodes
+    .filter((node) => node.subcategories.length > 0)
+    .map((node) => node.id);
+}
 
-  for (const node of nodes) {
-    if (node.children.length > 0) {
-      ids.push(node.id);
-      ids.push(...collectExpandableIds(node.children));
-    }
+const PRODUCT_CATEGORY_TREE_COLLAPSE_STORAGE_KEY =
+  "staff:product-categories:tree:collapsed-ids";
+
+function parseStoredCollapsedCategoryIds(value: string | null) {
+  if (!value) {
+    return [];
   }
 
-  return ids;
+  try {
+    const parsedValue = JSON.parse(value);
+
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    return Array.from(
+      new Set(
+        parsedValue.filter(
+          (item): item is number =>
+            typeof item === "number" &&
+            Number.isInteger(item) &&
+            item > 0,
+        ),
+      ),
+    );
+  } catch {
+    return [];
+  }
 }
 
 export default function ProductCategoriesListPage() {
+  const pathname = usePathname();
   const { user: authUser } = useStaffSessionContext();
   const canCreateCategory = authUser
     ? canCreateProductCategories(authUser)
@@ -92,30 +101,55 @@ export default function ProductCategoriesListPage() {
 
   const {
     items,
-    total,
     search,
-    appliedSearch,
     isLoading,
     error,
     setSearch,
     submitSearch,
-    clearSearch,
   } = useProductCategoriesTree();
 
   const tree = useMemo(() => buildCategoryTree(items), [items]);
-  const rootCount = tree.length;
-  const activeCount = useMemo(
-    () => items.filter((item) => item.isActive).length,
-    [items],
-  );
   const expandableIds = useMemo(() => collectExpandableIds(tree), [tree]);
-  const [expandedIds, setExpandedIds] = useState<number[]>([]);
+  const [collapsedIds, setCollapsedIds] = useState<number[]>([]);
+  const [hasHydratedCollapsedIds, setHasHydratedCollapsedIds] = useState(false);
 
   useEffect(() => {
-    setExpandedIds(expandableIds);
-  }, [expandableIds]);
+    const animationFrameId = window.requestAnimationFrame(() => {
+      const nextCollapsedIds = parseStoredCollapsedCategoryIds(
+        window.localStorage.getItem(PRODUCT_CATEGORY_TREE_COLLAPSE_STORAGE_KEY),
+      );
 
-  const expandedIdSet = useMemo(() => new Set(expandedIds), [expandedIds]);
+      setCollapsedIds(nextCollapsedIds);
+      setHasHydratedCollapsedIds(true);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedCollapsedIds) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(
+        PRODUCT_CATEGORY_TREE_COLLAPSE_STORAGE_KEY,
+        JSON.stringify(collapsedIds),
+      );
+    } catch {
+      // Ignore localStorage persistence failures.
+    }
+  }, [collapsedIds, hasHydratedCollapsedIds]);
+
+  const expandedIdSet = useMemo(() => {
+    const collapsedIdSet = new Set(collapsedIds);
+
+    return new Set(
+      expandableIds.filter((categoryId) => !collapsedIdSet.has(categoryId)),
+    );
+  }, [collapsedIds, expandableIds]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -123,24 +157,23 @@ export default function ProductCategoriesListPage() {
   };
 
   const toggleNode = (categoryId: number) => {
-    setExpandedIds((current) =>
+    setCollapsedIds((current) =>
       current.includes(categoryId)
         ? current.filter((id) => id !== categoryId)
         : [...current, categoryId],
     );
   };
-  const pathname = usePathname();
 
   return (
     <div className="space-y-6">
       <StaffPageHeader
-        eyebrow="Categories produit"
-        title="Arborescence produit"
+        eyebrow="Catégories produit"
+        title="Structure catalogue"
         icon={ListTree}
         actions={
           canCreateCategory ? (
             <AnimatedUIButton
-              href={`${pathname}/new`}
+              href={`${pathname}/edit`}
               variant="secondary"
               icon="plus"
             >
@@ -149,6 +182,14 @@ export default function ProductCategoriesListPage() {
           ) : null
         }
       />
+
+      <form onSubmit={handleSubmit}>
+        <StaffFilterBar
+          searchValue={search}
+          searchPlaceholder="Rechercher une catégorie ou une sous-catégorie..."
+          onSearchChange={setSearch}
+        />
+      </form>
 
       {isLoading ? (
         <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8">
@@ -164,17 +205,17 @@ export default function ProductCategoriesListPage() {
 
       {!isLoading && !error && tree.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-500">
-          Aucune categorie ne correspond a ces criteres.
+          Aucune catégorie ne correspond à ces critères.
         </div>
       ) : null}
 
       {!isLoading && !error && tree.length > 0 ? (
-          <ProductCategoryTree
-            pathname={pathname}
-            nodes={tree}
-            expandedIds={expandedIdSet}
-            onToggle={toggleNode}
-          />
+        <ProductCategoryTree
+          pathname={pathname}
+          nodes={tree}
+          expandedIds={expandedIdSet}
+          onToggle={toggleNode}
+        />
       ) : null}
     </div>
   );

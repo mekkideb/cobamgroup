@@ -434,7 +434,7 @@ export async function createArticleService(
     actionType: "CREATE",
     entityId: String(article.id),
     targetLabel: article.title,
-    summary: "Creation d'un nouvel article",
+    summary: "Création d'un nouvel article",
     afterSnapshotJson: toAuditSnapshot(article),
   });
 
@@ -500,7 +500,7 @@ export async function updateArticleService(
     actionType: "UPDATE",
     entityId: String(article.id),
     targetLabel: article.title,
-    summary: "Mise a jour d'un article",
+    summary: "Mise à jour d'un article",
     beforeSnapshotJson: toAuditSnapshot(before),
     afterSnapshotJson: toAuditSnapshot(article),
   });

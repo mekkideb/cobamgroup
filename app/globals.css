@@ -9,6 +9,8 @@
 
 :root {
   --radius: 1rem;
+  --font-montserrat: "Sora", "Aptos", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-playfair: "Source Serif 4", Georgia, "Times New Roman", serif;
 
   /* shadcn semantic tokens */
   --background: #f8f9fb;
@@ -410,4 +412,18 @@
 .panel-table td,
 .panel-table th {
   @apply align-middle;
+}
+
+
+/* Global CSS for elegant scrollbars and thin toolbar - add to your globals.css or app/globals.css in Next.js */
+
+/* Firefox support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+/* Ensure body/app has smooth scrolling */
+html {
+  scroll-behavior: smooth;
 }

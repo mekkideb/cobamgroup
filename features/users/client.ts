@@ -124,7 +124,7 @@ export async function updateUserProfileClient(
 
   if (!res.ok || !data?.ok || !data.user) {
     throw new UsersClientError(
-      getErrorMessage(data) || "Erreur lors de la mise a jour du profil",
+      getErrorMessage(data) || "Erreur lors de la mise à jour du profil",
       res.status,
     );
   }
@@ -147,7 +147,7 @@ export async function updateUserAccessClient(
 
   if (!res.ok || !data?.ok || !data.user) {
     throw new UsersClientError(
-      getErrorMessage(data) || "Erreur lors de la mise a jour des acces",
+      getErrorMessage(data) || "Erreur lors de la mise à jour des accès",
       res.status,
     );
   }
@@ -170,7 +170,7 @@ export async function updateUserCredentialsClient(
 
   if (!res.ok || !data?.ok || !data.user) {
     throw new UsersClientError(
-      getErrorMessage(data) || "Erreur lors de la mise a jour des identifiants",
+      getErrorMessage(data) || "Erreur lors de la mise à jour des identifiants",
       res.status,
     );
   }
@@ -192,7 +192,7 @@ export async function createUserClient(
 
   if (!res.ok || !data?.ok || !data.user) {
     throw new UsersClientError(
-      getErrorMessage(data) || "Erreur lors de la creation de l'utilisateur",
+      getErrorMessage(data) || "Erreur lors de la création de l'utilisateur",
       res.status,
     );
   }
@@ -231,7 +231,7 @@ export async function updateUserBanClient(
 
   if (!res.ok || !data?.ok || !data.user) {
     throw new UsersClientError(
-      getErrorMessage(data) || "Erreur lors de la mise a jour du statut",
+      getErrorMessage(data) || "Erreur lors de la mise à jour du statut",
       res.status,
     );
   }

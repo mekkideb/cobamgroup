@@ -34,7 +34,9 @@ export default function PanelSelect({
   fullWidth = false,
   triggerClassName,
   contentClassName,
+  id
 }: {
+  id?: string
   value: string;
   onValueChange: (value: string) => void;
   options?: StaffSelectOption[];
@@ -58,6 +60,7 @@ export default function PanelSelect({
       disabled={disabled}
     >
       <SelectTrigger
+        id={id}
         className={cn(
           "!h-12 rounded-md border border-slate-300 bg-white px-4",
           fullWidth ? "!w-full" : "!w-auto",

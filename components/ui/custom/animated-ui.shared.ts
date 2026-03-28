@@ -51,6 +51,72 @@ export type BadgeSizeStyles = {
   gap: string;
 };
 
+export function isHexColor(value: string | null | undefined): value is string {
+  return typeof value === "string" && /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value.trim());
+}
+
+function normalizeHex(value: string) {
+  const trimmed = value.trim();
+  if (trimmed.length === 4) {
+    return `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`;
+  }
+  return trimmed.toLowerCase();
+}
+
+export function hexToRgb(value: string) {
+  const normalized = normalizeHex(value);
+  const numeric = Number.parseInt(normalized.slice(1), 16);
+
+  return {
+    r: (numeric >> 16) & 255,
+    g: (numeric >> 8) & 255,
+    b: numeric & 255,
+  };
+}
+
+function rgbToHex(r: number, g: number, b: number) {
+  return `#${[r, g, b]
+    .map((component) =>
+      Math.max(0, Math.min(255, Math.round(component)))
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
+}
+
+export function hexToRgba(value: string, alpha: number) {
+  const { r, g, b } = hexToRgb(value);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+export function mixHexColors(base: string, target: string, amount: number) {
+  const left = hexToRgb(base);
+  const right = hexToRgb(target);
+  const ratio = Math.max(0, Math.min(1, amount));
+
+  return rgbToHex(
+    left.r + (right.r - left.r) * ratio,
+    left.g + (right.g - left.g) * ratio,
+    left.b + (right.b - left.b) * ratio,
+  );
+}
+
+export function getReadableHexTextColor(value: string) {
+  const { r, g, b } = hexToRgb(value);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  return luminance > 0.72
+    ? mixHexColors(value, "#0f172a", 0.62)
+    : mixHexColors(value, "#0f172a", 0.18);
+}
+
+export function getReadableHexSolidTextColor(value: string) {
+  const { r, g, b } = hexToRgb(value);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  return luminance > 0.72 ? "#0f172a" : "#ffffff";
+}
+
 function createColorSet(
   outlineColor: string,
   bgColor: string,

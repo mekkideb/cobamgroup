@@ -149,7 +149,7 @@ export function useUserDetail(userId: string | null) {
       setUser(updated);
       setProfile(toProfileState(updated));
       setAccess(toAccessState(updated));
-      setNotice("Profil mis a jour.");
+      setNotice("Profil mis à jour.");
       return updated;
     } catch (err: unknown) {
       const message =
@@ -157,7 +157,7 @@ export function useUserDetail(userId: string | null) {
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Erreur lors de la mise a jour du profil";
+            : "Erreur lors de la mise à jour du profil";
       setError(message);
       return null;
     } finally {
@@ -177,7 +177,7 @@ export function useUserDetail(userId: string | null) {
       setUser(updated);
       setProfile(toProfileState(updated));
       setAccess(toAccessState(updated));
-      setNotice("Acces mis a jour.");
+      setNotice("Accès mis à jour.");
       return updated;
     } catch (err: unknown) {
       const message =
@@ -185,7 +185,7 @@ export function useUserDetail(userId: string | null) {
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Erreur lors de la mise a jour des acces";
+            : "Erreur lors de la mise à jour des accès";
       setError(message);
       return null;
     } finally {
@@ -202,7 +202,7 @@ export function useUserDetail(userId: string | null) {
     }
 
     if (!credentials.email && !credentials.password) {
-      setError("Aucune modification a enregistrer");
+      setError("Aucune modification à enregistrer");
       return null;
     }
 
@@ -230,7 +230,7 @@ export function useUserDetail(userId: string | null) {
         password: "",
         passwordConfirm: "",
       });
-      setNotice("Identifiants mis a jour.");
+      setNotice("Identifiants mis à jour.");
       return updated;
     } catch (err: unknown) {
       const message =
@@ -238,7 +238,7 @@ export function useUserDetail(userId: string | null) {
           ? err.message
           : err instanceof Error
             ? err.message
-            : "Erreur lors de la mise a jour des identifiants";
+            : "Erreur lors de la mise à jour des identifiants";
       setError(message);
       return null;
     } finally {
@@ -260,7 +260,7 @@ export function useUserDetail(userId: string | null) {
         setProfile(toProfileState(updated));
         setAccess(toAccessState(updated));
         setCredentials((prev) => ({ ...prev, email: updated.email }));
-        setNotice(input.banned ? "Compte banni." : "Compte reactive.");
+        setNotice(input.banned ? "Compte banni." : "Compte réactivé.");
         return updated;
       } catch (err: unknown) {
         const message =
@@ -268,7 +268,7 @@ export function useUserDetail(userId: string | null) {
             ? err.message
             : err instanceof Error
               ? err.message
-              : "Erreur lors de la mise a jour du statut";
+              : "Erreur lors de la mise à jour du statut";
         setError(message);
         return null;
       } finally {

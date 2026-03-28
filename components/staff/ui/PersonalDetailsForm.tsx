@@ -54,7 +54,7 @@ export default function PersonalDetailsForm({
   onChange,
   disableEmail = false,
   description = "Gerez les informations de profil.",
-  title = "Details personnels",
+  title = "Détails personnels",
   pretitle = "Compte",
 }: PersonalDetailsFormProps) {
   const { selectValue } = useMemo(() => {

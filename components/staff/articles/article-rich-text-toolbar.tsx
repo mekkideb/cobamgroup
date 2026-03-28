@@ -4,7 +4,6 @@ import { useState, type ReactNode } from "react";
 import { useEditorState, type Editor } from "@tiptap/react";
 import {
   Bold,
-  Columns3,
   Eraser,
   Heading1,
   ImagePlus,
@@ -13,11 +12,9 @@ import {
   ListOrdered,
   Minus,
   Quote,
-  Rows3,
-  Strikethrough,
-  Trash2,
   Type,
   Underline as UnderlineIcon,
+  Strikethrough,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +43,8 @@ type ToolbarButtonProps = {
   disabled?: boolean;
   onClick: () => void;
   className?: string;
+  label: string;
+  iconOnly?: boolean;
   children: ReactNode;
 };
 
@@ -54,6 +53,8 @@ function ToolbarButton({
   disabled = false,
   onClick,
   className,
+  label,
+  iconOnly = false,
   children,
 }: ToolbarButtonProps) {
   return (
@@ -63,7 +64,13 @@ function ToolbarButton({
       variant={active ? "secondary" : "outline"}
       disabled={disabled}
       onClick={onClick}
-      className={cn("h-9 rounded-xl border-slate-200 px-3", className)}
+      title={label}
+      aria-label={label}
+      className={cn(
+        "h-9 rounded-xl border-slate-200",
+        iconOnly ? "w-9 px-0" : "px-3",
+        className,
+      )}
     >
       {children}
     </Button>
@@ -105,14 +112,9 @@ function applyBlockType(editor: Editor | null, nextValue: string) {
   }
 }
 
-function buildArticleImageSource(mediaId: number) {
-  return `/api/staff/medias/${mediaId}/file`;
-}
-
 export default function ArticleRichTextToolbar({
   editor,
 }: ArticleRichTextToolbarProps) {
-  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
   const isReadOnly = !editor?.isEditable;
   const editorState =
     useEditorState({
@@ -133,9 +135,6 @@ export default function ArticleRichTextToolbar({
           isBlockquote: currentEditor?.isActive("blockquote") ?? false,
           isBulletList: currentEditor?.isActive("bulletList") ?? false,
           isOrderedList: currentEditor?.isActive("orderedList") ?? false,
-          isHeadingOne:
-            currentEditor?.isActive("heading", { level: 1 }) ?? false,
-          isInTable: currentEditor?.isActive("table") ?? false,
         };
       },
     }) ?? {
@@ -148,138 +147,130 @@ export default function ArticleRichTextToolbar({
       isBlockquote: false,
       isBulletList: false,
       isOrderedList: false,
-      isHeadingOne: false,
-      isInTable: false,
     };
 
-  const handleInsertImage = (media: MediaListItemDto) => {
-    if (!editor) {
-      return;
-    }
-
-    editor
-      .chain()
-      .focus()
-      .insertContent({
-        type: "image",
-        attrs: {
-          src: buildArticleImageSource(media.id),
-          mediaId: String(media.id),
-          alt:
-            media.altText ??
-            media.title ??
-            media.originalFilename ??
-            "Image d'article",
-          title: media.title ?? media.originalFilename ?? undefined,
-        },
-      })
-      .run();
-  };
-
   return (
-    <>
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          value={editorState.activeBlock}
-          onValueChange={(value) => applyBlockType(editor, value)}
-          disabled={isReadOnly}
-        >
-          <SelectTrigger className="h-9 min-w-40 rounded-xl border-slate-200 bg-white">
-            <SelectValue placeholder="Paragraphe" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="paragraph">Paragraphe</SelectItem>
-            <SelectItem value="h1">Titre 1</SelectItem>
-            <SelectItem value="h2">Titre 2</SelectItem>
-            <SelectItem value="h3">Titre 3</SelectItem>
-            <SelectItem value="h4">Titre 4</SelectItem>
-            <SelectItem value="h5">Titre 5</SelectItem>
-            <SelectItem value="h6">Titre 6</SelectItem>
-          </SelectContent>
-        </Select>
+    <div className="pt-6 border-b sticky flex w-full flex-col gap-3 top-0 z-2 border-slate-200 p-4 backdrop-blur supports-[backdrop-filter]:bg-slate-50/85">
+          <div className="flex min-w-max items-center gap-2 justify-center">
+            <Select
+              value={editorState.activeBlock}
+              onValueChange={(value) => applyBlockType(editor, value)}
+              disabled={isReadOnly}
+            >
+              <SelectTrigger className="h-9 min-w-40 rounded-xl border-slate-200 bg-white">
+                <div className="flex items-center gap-2">
+                  <Heading1 className="h-4 w-4" />
+                  <SelectValue placeholder="Titre rapide" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="paragraph">Paragraphe</SelectItem>
+                <SelectItem value="h1">Titre 1</SelectItem>
+                <SelectItem value="h2">Titre 2</SelectItem>
+                <SelectItem value="h3">Titre 3</SelectItem>
+                <SelectItem value="h4">Titre 4</SelectItem>
+                <SelectItem value="h5">Titre 5</SelectItem>
+                <SelectItem value="h6">Titre 6</SelectItem>
+              </SelectContent>
+            </Select>
 
-        <Separator orientation="vertical" className="mx-1 hidden h-6 sm:block" />
+            <Separator orientation="vertical" className="mx-1 hidden h-6 sm:block" />
 
-        <ToolbarButton
-          active={editorState.isBold}
-          disabled={isReadOnly}
-          onClick={() => editor?.chain().focus().toggleBold().run()}
-        >
-          <Bold className="mr-2 h-4 w-4" />
-          Gras
-        </ToolbarButton>
+            <ToolbarButton
+              label="Gras"
+              iconOnly
+              active={editorState.isBold}
+              disabled={isReadOnly}
+              onClick={() => editor?.chain().focus().toggleBold().run()}
+            >
+              <Bold className="h-4 w-4" />
+            </ToolbarButton>
 
-        <ToolbarButton
-          active={editorState.isItalic}
-          disabled={isReadOnly}
-          onClick={() => editor?.chain().focus().toggleItalic().run()}
-        >
-          <Italic className="mr-2 h-4 w-4" />
-          Italique
-        </ToolbarButton>
+            <ToolbarButton
+              label="Italique"
+              iconOnly
+              active={editorState.isItalic}
+              disabled={isReadOnly}
+              onClick={() => editor?.chain().focus().toggleItalic().run()}
+            >
+              <Italic className="h-4 w-4" />
+            </ToolbarButton>
 
-        <ToolbarButton
-          active={editorState.isUnderline}
-          disabled={isReadOnly}
-          onClick={() => editor?.chain().focus().toggleUnderline().run()}
-        >
-          <UnderlineIcon className="mr-2 h-4 w-4" />
-          Souligne
-        </ToolbarButton>
+            <ToolbarButton
+              label="Souligne"
+              iconOnly
+              active={editorState.isUnderline}
+              disabled={isReadOnly}
+              onClick={() => editor?.chain().focus().toggleUnderline().run()}
+            >
+              <UnderlineIcon className="h-4 w-4" />
+            </ToolbarButton>
 
-        <ToolbarButton
-          active={editorState.isStrike}
-          disabled={isReadOnly}
-          onClick={() => editor?.chain().focus().toggleStrike().run()}
-        >
-          <Strikethrough className="mr-2 h-4 w-4" />
-          Barre
-        </ToolbarButton>
+            <ToolbarButton
+              label="Barre"
+              iconOnly
+              active={editorState.isStrike}
+              disabled={isReadOnly}
+              onClick={() => editor?.chain().focus().toggleStrike().run()}
+            >
+              <Strikethrough className="h-4 w-4" />
+            </ToolbarButton>
 
-        <ToolbarButton
-          active={editorState.isBlockquote}
-          disabled={isReadOnly}
-          onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-        >
-          <Quote className="mr-2 h-4 w-4" />
-          Citation
-        </ToolbarButton>
+            <ToolbarButton
+              label="Citation"
+              active={editorState.isBlockquote}
+              disabled={isReadOnly}
+              onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+            >
+              <Quote className="mr-2 h-4 w-4" />
+              Citation
+            </ToolbarButton>
 
-        <ToolbarButton
-          active={editorState.isBulletList}
-          disabled={isReadOnly}
-          onClick={() => editor?.chain().focus().toggleBulletList().run()}
-        >
-          <List className="mr-2 h-4 w-4" />
-          Liste
-        </ToolbarButton>
+            <ToolbarButton
+              label="Liste"
+              active={editorState.isBulletList}
+              disabled={isReadOnly}
+              onClick={() => editor?.chain().focus().toggleBulletList().run()}
+            >
+              <List className="mr-2 h-4 w-4" />
+              Liste
+            </ToolbarButton>
 
-        <ToolbarButton
-          active={editorState.isOrderedList}
-          disabled={isReadOnly}
-          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-        >
-          <ListOrdered className="mr-2 h-4 w-4" />
-          Liste ordonnee
-        </ToolbarButton>
+            <ToolbarButton
+              label="Liste ordonnée"
+              active={editorState.isOrderedList}
+              disabled={isReadOnly}
+              onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+            >
+              <ListOrdered className="mr-2 h-4 w-4" />
+              123
+            </ToolbarButton>
 
-        <ToolbarButton
-          disabled={isReadOnly}
-          onClick={() => editor?.chain().focus().setHorizontalRule().run()}
-        >
-          <Minus className="mr-2 h-4 w-4" />
-          Ligne
-        </ToolbarButton>
+            <ToolbarButton
+              label="Tableau"
+              disabled={isReadOnly}
+              onClick={() =>
+                editor
+                  ?.chain()
+                  .focus()
+                  .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                  .run()
+              }
+            >
+              Tableau
+            </ToolbarButton>
 
-        <ToolbarButton
-          disabled={isReadOnly}
-          onClick={() => setIsImageDialogOpen(true)}
-        >
-          <ImagePlus className="mr-2 h-4 w-4" />
-          Image
-        </ToolbarButton>
+            <ToolbarButton
+              label="Ligne"
+              disabled={isReadOnly}
+              onClick={() => editor?.chain().focus().setHorizontalRule().run()}
+            >
+              <Minus className="mr-2 h-4 w-4" />
+              Ligne
+            </ToolbarButton>
+          </div>
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2">
             <div className="inline-flex items-center gap-2 pr-1 text-xs font-medium text-slate-600">
               <Type className="h-4 w-4 text-slate-400" />
@@ -329,101 +320,14 @@ export default function ArticleRichTextToolbar({
           </div>
 
           <ToolbarButton
+            label="Retirer la couleur"
+            iconOnly
             disabled={!editor}
             onClick={() => editor?.chain().focus().unsetColor().run()}
           >
-            <Eraser className="mr-2 h-4 w-4" />
-            Retirer la couleur
+            <Eraser className="h-4 w-4" />
           </ToolbarButton>
         </div>
       </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <ToolbarButton
-          active={editorState.isHeadingOne}
-          disabled={!editor}
-          onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
-        >
-          <Heading1 className="mr-2 h-4 w-4" />
-          Titre rapide
-        </ToolbarButton>
-
-        <ToolbarButton
-          active={editorState.isInTable}
-          disabled={!editor}
-          onClick={() =>
-            editor
-              ?.chain()
-              .focus()
-              .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-              .run()
-          }
-        >
-          Tableau
-        </ToolbarButton>
-
-        {editorState.isInTable ? (
-          <>
-            <ToolbarButton
-              disabled={!editor}
-              onClick={() => editor?.chain().focus().addRowAfter().run()}
-            >
-              <Rows3 className="mr-2 h-4 w-4" />
-              Ligne +
-            </ToolbarButton>
-
-            <ToolbarButton
-              disabled={!editor}
-              onClick={() => editor?.chain().focus().addColumnAfter().run()}
-            >
-              <Columns3 className="mr-2 h-4 w-4" />
-              Colonne +
-            </ToolbarButton>
-
-            <ToolbarButton
-              disabled={!editor}
-              onClick={() => editor?.chain().focus().toggleHeaderRow().run()}
-            >
-              Entete
-            </ToolbarButton>
-
-            <ToolbarButton
-              disabled={!editor}
-              onClick={() => editor?.chain().focus().deleteRow().run()}
-            >
-              Supprimer ligne
-            </ToolbarButton>
-
-            <ToolbarButton
-              disabled={!editor}
-              onClick={() => editor?.chain().focus().deleteColumn().run()}
-            >
-              Supprimer colonne
-            </ToolbarButton>
-
-            <ToolbarButton
-              disabled={!editor}
-              onClick={() => editor?.chain().focus().deleteTable().run()}
-              className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Supprimer tableau
-            </ToolbarButton>
-          </>
-        ) : null}
-      </div>
-
-      <ImagePickerDialog
-        open={isImageDialogOpen}
-        onOpenChange={setIsImageDialogOpen}
-        title="Inserer une image dans l'article"
-        description="Choisissez une image depuis la mediatheque ou importez-en une nouvelle."
-        selectedMediaId={null}
-        onSelect={(media) => {
-          handleInsertImage(media);
-          setIsImageDialogOpen(false);
-        }}
-      />
-    </>
   );
 }

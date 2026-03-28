@@ -11,9 +11,13 @@ import PanelField from "@/components/staff/ui/PanelField";
 import PanelInput from "@/components/staff/ui/PanelInput";
 import {
   StaffBadge,
+  StaffEditorActionsPanel,
+  StaffEditorInfoPanel,
+  StaffEditorLayout,
   StaffNotice,
   StaffPageHeader,
   StaffStateCard,
+  UnsavedChangesGuard,
 } from "@/components/staff/ui";
 import { AnimatedUIButton } from "@/components/ui/custom/Buttons";
 import { useStaffSessionContext } from "@/features/auth/client/staff-session-provider";
@@ -52,6 +56,7 @@ function ArticleCategoryEditPageContent() {
   const {
     category,
     form,
+    isDirty,
     isLoading,
     isSaving,
     isDeleting,
@@ -83,9 +88,6 @@ function ArticleCategoryEditPageContent() {
   const canForceRemove = Boolean(category?.abilities.canForceRemove);
   const isReferenced = (category?.articleCount ?? 0) > 0;
   const shouldForceRemove = isReferenced && canForceRemove;
-  const deleteButtonLabel = shouldForceRemove
-    ? "Forcer la suppression"
-    : "Supprimer la catégorie";
   const deleteDisabled = !canDelete || (isReferenced && !canForceRemove);
 
   const handleNameChange = (value: string) => {
@@ -103,21 +105,27 @@ function ArticleCategoryEditPageContent() {
   const handleSave = async () => {
     if (mode === "create" && !canCreateCategory) {
       toast.error("Accès refusé");
-      return;
+      return false;
     }
 
     if (!form.name.trim() || !previewSlug || !form.color.trim()) {
       toast.error("Nom, slug et couleur requis");
-      return;
+      return false;
     }
 
     const saved = await save();
 
-    if (saved && mode === "create") {
+    if (!saved) {
+      return false;
+    }
+
+    if (mode === "create") {
       router.replace(
         `/espace/staff/gestion-des-articles/categories-articles/edit?id=${saved.id}`,
       );
     }
+
+    return true;
   };
 
   const handleDelete = async () => {
@@ -125,10 +133,11 @@ function ArticleCategoryEditPageContent() {
       return;
     }
 
-    const confirmMessage = shouldForceRemove
-      ? `Forcer la suppression de la catégorie ${category.name} et détacher ${category.articleCount} article(s) ?`
-      : `Supprimer la catégorie ${category.name} ?`;
-    const confirmed = window.confirm(confirmMessage);
+    const confirmed = window.confirm(
+      shouldForceRemove
+        ? `Supprimer cette catégorie et détacher ${category.articleCount} article(s) ?`
+        : `Supprimer la catégorie ${category.name} ?`,
+    );
 
     if (!confirmed) {
       return;
@@ -144,7 +153,7 @@ function ArticleCategoryEditPageContent() {
         ? `Catégorie supprimée. ${result.detachedArticlesCount} article(s) détaché(s).`
         : "Catégorie supprimée.",
     );
-    router.replace("/espace/staff/gestion/categories-articles");
+    router.replace("/espace/staff/gestion-des-articles/categories-articles");
   };
 
   if (isAuthLoading && !authUser) {
@@ -157,7 +166,7 @@ function ArticleCategoryEditPageContent() {
         variant="forbidden"
         title="Accès refusé"
         description="Vous n'avez pas l'autorisation de créer une catégorie d'articles."
-        actionHref="/espace/staff/gestion/categories-articles"
+        actionHref="/espace/staff/gestion-des-articles/categories-articles"
         actionLabel="Retour aux catégories d'articles"
       />
     );
@@ -172,7 +181,7 @@ function ArticleCategoryEditPageContent() {
       <StaffStateCard
         title="Erreur"
         description={error}
-        actionHref="/espace/staff/gestion/categories-articles"
+        actionHref="/espace/staff/gestion-des-articles/categories-articles"
         actionLabel="Retour aux catégories d'articles"
       />
     );
@@ -184,8 +193,10 @@ function ArticleCategoryEditPageContent() {
 
   return (
     <div className="space-y-6">
+      <UnsavedChangesGuard isDirty={isDirty} onSaveAndContinue={handleSave} />
+
       <StaffPageHeader
-        backHref="/espace/staff/gestion/categories-articles"
+        backHref="/espace/staff/gestion-des-articles/categories-articles"
         eyebrow="Articles"
         title={
           mode === "edit" && category
@@ -198,95 +209,39 @@ function ArticleCategoryEditPageContent() {
       {error ? (
         <StaffNotice
           variant="error"
-          title={
-            mode === "edit"
-              ? "Modification impossible"
-              : "Création impossible"
-          }
+          title={mode === "edit" ? "Modification impossible" : "Création impossible"}
         >
           {error}
         </StaffNotice>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <Panel
-          pretitle="Édition"
-          title="Informations de la catégorie"
-          description="Le nom, le slug et la couleur seront utilisés pour organiser les articles dans le staff et dans les futures vues publiques."
-        >
-          <div className="grid gap-6">
-            <PanelField id="article-category-name" label="Nom">
-              <PanelInput
-                id="article-category-name"
-                value={form.name}
-                onChange={(event) => handleNameChange(event.target.value)}
-                placeholder="Actualités COBAM"
-                fullWidth
-              />
-            </PanelField>
+      <StaffEditorLayout
+        sidebar={
+          <>
+            <StaffEditorActionsPanel
+              mode={mode}
+              onSave={() => void handleSave()}
+              isSaving={isSaving}
+              saveDisabled={!form.name.trim() || !previewSlug || !form.color.trim()}
+              onDelete={mode === "edit" ? () => void handleDelete() : undefined}
+              isDeleting={isDeleting}
+              deleteDisabled={deleteDisabled}
+              description="Retrouvez ici les actions principales de cette catégorie."
+              topContent={
+                isReferenced ? (
+                  <StaffNotice
+                    variant={canForceRemove ? "warning" : "error"}
+                    title={canForceRemove ? "Articles encore rattachés" : "Suppression bloquée"}
+                  >
+                    {canForceRemove
+                      ? `Cette catégorie est encore liée à ${category?.articleCount ?? 0} article(s). La suppression détachera ces articles.`
+                      : `Cette catégorie est encore liée à ${category?.articleCount ?? 0} article(s). Sans droit de suppression forcée, elle ne peut pas être supprimée.`}
+                  </StaffNotice>
+                ) : null
+              }
+            />
 
-            <PanelField id="article-category-slug" label="Slug">
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <PanelInput
-                  id="article-category-slug"
-                  value={form.slug}
-                  onChange={(event) =>
-                    setField(
-                      "slug",
-                      slugifyArticleCategoryName(event.target.value),
-                    )
-                  }
-                  placeholder="actualites-cobam"
-                  fullWidth
-                />
-                <AnimatedUIButton
-                  type="button"
-                  onClick={() =>
-                    setField("slug", slugifyArticleCategoryName(form.name))
-                  }
-                  variant="light"
-                  size="sm"
-                >
-                  Générer
-                </AnimatedUIButton>
-              </div>
-            </PanelField>
-
-            <PanelField
-              id="article-category-color"
-              label="Couleur"
-              hint="Cette couleur sera utilisée dans la vue publique de l'article."
-            >
-              <ArticleCategoryColorField
-                value={form.color}
-                onChange={(value) => setField("color", value)}
-              />
-            </PanelField>
-
-            <div className="flex justify-end">
-              <AnimatedUIButton
-                type="button"
-                onClick={() => void handleSave()}
-                loading={isSaving}
-                loadingText={
-                  mode === "edit" ? "Enregistrement..." : "Création..."
-                }
-                variant="primary"
-                icon={mode === "edit" ? "save" : "plus"}
-              >
-                {mode === "edit" ? "Enregistrer" : "Créer la catégorie"}
-              </AnimatedUIButton>
-            </div>
-          </div>
-        </Panel>
-
-        <div className="flex flex-col gap-6">
-          <Panel
-            pretitle="Résumé"
-            title="Aperçu"
-            description="Vue rapide de l'identité de cette catégorie."
-          >
-            <div className="space-y-4">
+            <StaffEditorInfoPanel description="Vue rapide de l'identité et de l'usage actuel de cette catégorie.">
               <div className="flex items-center gap-3">
                 <div
                   className="h-14 w-14 rounded-2xl border border-slate-200"
@@ -357,56 +312,61 @@ function ArticleCategoryEditPageContent() {
                   </div>
                 </>
               ) : null}
-            </div>
-          </Panel>
+            </StaffEditorInfoPanel>
+          </>
+        }
+      >
+        <Panel
+          pretitle="Édition"
+          title="Informations de la catégorie"
+          description="Le nom, le slug et la couleur seront utilisés pour organiser les articles dans le staff et dans les futures vues publiques."
+        >
+          <div className="grid gap-6">
+            <PanelField id="article-category-name" label="Nom">
+              <PanelInput
+                id="article-category-name"
+                value={form.name}
+                onChange={(event) => handleNameChange(event.target.value)}
+                placeholder="Actualités COBAM"
+                fullWidth
+              />
+            </PanelField>
 
-          {mode === "edit" ? (
-            <Panel
-              pretitle="Danger"
-              title="Suppression"
-              description="La suppression retire définitivement la catégorie du back-office."
-            >
-              <div className="space-y-4">
-                {isReferenced ? (
-                  <StaffNotice
-                    variant={canForceRemove ? "warning" : "error"}
-                    title={
-                      canForceRemove
-                        ? "Articles encore rattachés"
-                        : "Suppression bloquée"
-                    }
-                  >
-                    {canForceRemove
-                      ? `Cette catégorie est encore liée à ${category?.articleCount ?? 0} article(s). Le bouton ci-dessous effectuera Forcer la suppression et détachera ces articles.`
-                      : `Cette catégorie est encore liée à ${category?.articleCount ?? 0} article(s). Sans droit de Forcer la suppression, elle ne peut pas être supprimée.`}
-                  </StaffNotice>
-                ) : (
-                  <p className="text-sm leading-6 text-slate-500">
-                    Cette catégorie n&apos;est liée à aucun article. Elle peut être
-                    supprimée immédiatement.
-                  </p>
-                )}
-
+            <PanelField id="article-category-slug" label="Slug">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <PanelInput
+                  id="article-category-slug"
+                  value={form.slug}
+                  onChange={(event) =>
+                    setField("slug", slugifyArticleCategoryName(event.target.value))
+                  }
+                  placeholder="actualites-cobam"
+                  fullWidth
+                />
                 <AnimatedUIButton
                   type="button"
-                  onClick={() => void handleDelete()}
-                  loading={isDeleting}
-                  loadingText="Suppression..."
-                  disabled={deleteDisabled}
+                  onClick={() => setField("slug", slugifyArticleCategoryName(form.name))}
                   variant="light"
-                  icon="delete"
-                  iconPosition="left"
-                  className="w-full border-red-200 bg-red-50 hover:border-red-300 hover:bg-red-100"
-                  textClassName="text-red-700"
-                  iconClassName="text-red-700"
+                  size="sm"
                 >
-                  {deleteButtonLabel}
+                  Générer
                 </AnimatedUIButton>
               </div>
-            </Panel>
-          ) : null}
-        </div>
-      </div>
+            </PanelField>
+
+            <PanelField
+              id="article-category-color"
+              label="Couleur"
+              hint="Cette couleur sera utilisée dans la vue publique de l'article."
+            >
+              <ArticleCategoryColorField
+                value={form.color}
+                onChange={(value) => setField("color", value)}
+              />
+            </PanelField>
+          </div>
+        </Panel>
+      </StaffEditorLayout>
     </div>
   );
 }

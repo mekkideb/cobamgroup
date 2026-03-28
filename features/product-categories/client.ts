@@ -5,7 +5,6 @@ import type {
   ProductCategoryCreateInput,
   ProductCategoryDetailDto,
   ProductCategoryListResult,
-  ProductCategoryParentOptionDto,
   ProductCategoryUpdateInput,
 } from "./types";
 
@@ -15,9 +14,6 @@ type ApiFail = { ok: false; message?: string };
 type ProductCategoryListResponse = ApiOk<ProductCategoryListResult> | ApiFail;
 type ProductCategoryDetailResponse =
   | ApiOk<{ category: ProductCategoryDetailDto }>
-  | ApiFail;
-type ProductCategoryParentOptionsResponse =
-  | ApiOk<{ items: ProductCategoryParentOptionDto[] }>
   | ApiFail;
 type ProductCategoryDeleteResponse = ApiOk<Record<string, never>> | ApiFail;
 
@@ -75,7 +71,8 @@ export async function listProductCategoriesClient(params: {
 
   if (!res.ok || !data?.ok) {
     throw new ProductCategoriesClientError(
-      getErrorMessage(data) || "Erreur lors du chargement des categories de produit",
+      getErrorMessage(data) ||
+        "Erreur lors du chargement des catégories produit",
       res.status,
     );
   }
@@ -86,27 +83,6 @@ export async function listProductCategoriesClient(params: {
     page: data.page,
     pageSize: data.pageSize,
   };
-}
-
-export async function listProductCategoryParentOptionsClient(): Promise<
-  ProductCategoryParentOptionDto[]
-> {
-  const res = await staffApiFetch("/api/staff/product-categories/parents", {
-    method: "GET",
-    auth: true,
-  });
-
-  const data = await parseJsonSafe<ProductCategoryParentOptionsResponse>(res);
-
-  if (!res.ok || !data?.ok) {
-    throw new ProductCategoriesClientError(
-      getErrorMessage(data) ||
-        "Erreur lors du chargement des categories parentes disponibles",
-      res.status,
-    );
-  }
-
-  return data.items;
 }
 
 export async function getProductCategoryByIdClient(
@@ -122,7 +98,7 @@ export async function getProductCategoryByIdClient(
   if (!res.ok || !data?.ok || !data.category) {
     throw new ProductCategoriesClientError(
       getErrorMessage(data) ||
-        "Erreur lors du chargement de la categorie de produit",
+        "Erreur lors du chargement de la catégorie produit",
       res.status,
     );
   }
@@ -145,7 +121,7 @@ export async function createProductCategoryClient(
   if (!res.ok || !data?.ok || !data.category) {
     throw new ProductCategoriesClientError(
       getErrorMessage(data) ||
-        "Erreur lors de la creation de la categorie de produit",
+        "Erreur lors de la création de la catégorie produit",
       res.status,
     );
   }
@@ -169,7 +145,7 @@ export async function updateProductCategoryClient(
   if (!res.ok || !data?.ok || !data.category) {
     throw new ProductCategoriesClientError(
       getErrorMessage(data) ||
-        "Erreur lors de la mise a jour de la categorie de produit",
+        "Erreur lors de la mise à jour de la catégorie produit",
       res.status,
     );
   }
@@ -190,9 +166,8 @@ export async function deleteProductCategoryClient(
   if (!res.ok || !data?.ok) {
     throw new ProductCategoriesClientError(
       getErrorMessage(data) ||
-        "Erreur lors de la suppression de la categorie de produit",
+        "Erreur lors de la suppression de la catégorie produit",
       res.status,
     );
   }
 }
-

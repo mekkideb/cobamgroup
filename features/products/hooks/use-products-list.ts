@@ -27,7 +27,7 @@ export function useProductsList(initialPageSize: ProductPageSize = 20) {
   );
   const [search, setSearch] = useState("");
   const [brandId, setBrandId] = useState("");
-  const [productCategoryId, setProductCategoryId] = useState("");
+  const [productSubcategoryId, setProductSubcategoryId] = useState("");
   const [options, setOptions] = useState<ProductFormOptionsDto>(
     EMPTY_PRODUCT_FORM_OPTIONS,
   );
@@ -37,7 +37,7 @@ export function useProductsList(initialPageSize: ProductPageSize = 20) {
   const pageSizeRef = useRef(pageSize);
   const searchRef = useRef(search);
   const brandIdRef = useRef(brandId);
-  const productCategoryIdRef = useRef(productCategoryId);
+  const productSubcategoryIdRef = useRef(productSubcategoryId);
 
   useEffect(() => {
     pageRef.current = page;
@@ -56,8 +56,8 @@ export function useProductsList(initialPageSize: ProductPageSize = 20) {
   }, [brandId]);
 
   useEffect(() => {
-    productCategoryIdRef.current = productCategoryId;
-  }, [productCategoryId]);
+    productSubcategoryIdRef.current = productSubcategoryId;
+  }, [productSubcategoryId]);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(total / pageSize)),
@@ -70,14 +70,14 @@ export function useProductsList(initialPageSize: ProductPageSize = 20) {
       pageSize?: ProductPageSize;
       search?: string;
       brandId?: string;
-      productCategoryId?: string;
+      productSubcategoryId?: string;
     }) => {
       const nextPage = override?.page ?? pageRef.current;
       const nextPageSize = override?.pageSize ?? pageSizeRef.current;
       const nextSearch = override?.search ?? searchRef.current;
       const nextBrandId = override?.brandId ?? brandIdRef.current;
-      const nextProductCategoryId =
-        override?.productCategoryId ?? productCategoryIdRef.current;
+      const nextProductSubcategoryId =
+        override?.productSubcategoryId ?? productSubcategoryIdRef.current;
 
       setIsLoading(true);
       setError(null);
@@ -88,8 +88,8 @@ export function useProductsList(initialPageSize: ProductPageSize = 20) {
           pageSize: nextPageSize,
           q: nextSearch,
           brandId: nextBrandId ? Number(nextBrandId) : undefined,
-          productCategoryId: nextProductCategoryId
-            ? Number(nextProductCategoryId)
+          productSubcategoryId: nextProductSubcategoryId
+            ? Number(nextProductSubcategoryId)
             : undefined,
         });
 
@@ -136,8 +136,14 @@ export function useProductsList(initialPageSize: ProductPageSize = 20) {
   }, []);
 
   const submitFilters = useCallback(async () => {
-    await fetchProducts({ page: 1, pageSize, search, brandId, productCategoryId });
-  }, [brandId, fetchProducts, pageSize, productCategoryId, search]);
+    await fetchProducts({
+      page: 1,
+      pageSize,
+      search,
+      brandId,
+      productSubcategoryId,
+    });
+  }, [brandId, fetchProducts, pageSize, productSubcategoryId, search]);
 
   const updatePageSize = useCallback(
     async (value: ProductPageSize) => {
@@ -165,7 +171,7 @@ export function useProductsList(initialPageSize: ProductPageSize = 20) {
     pageSize,
     search,
     brandId,
-    productCategoryId,
+    productSubcategoryId,
     options,
     isLoading,
     error,
@@ -174,7 +180,7 @@ export function useProductsList(initialPageSize: ProductPageSize = 20) {
     canNext: page < totalPages,
     setSearch,
     setBrandId,
-    setProductCategoryId,
+    setProductSubcategoryId,
     fetchProducts,
     submitFilters,
     updatePageSize,

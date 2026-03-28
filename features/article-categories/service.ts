@@ -163,7 +163,7 @@ async function assertUniqueArticleCategoryInput(
     Number(sameSlug.id) !== (options?.excludeCategoryId ?? -1)
   ) {
     throw new ArticleCategoryServiceError(
-      "Une categorie d'articles avec ce slug existe deja.",
+      "Une catégorie d'articles avec ce slug existe déjà.",
       400,
     );
   }
@@ -173,7 +173,7 @@ async function assertUniqueArticleCategoryInput(
     Number(sameName.id) !== (options?.excludeCategoryId ?? -1)
   ) {
     throw new ArticleCategoryServiceError(
-      "Une categorie d'articles avec ce nom existe deja.",
+      "Une catégorie d'articles avec ce nom existe déjà.",
       400,
     );
   }
@@ -184,7 +184,7 @@ export async function listArticleCategoriesService(
   query: ArticleCategoryListQuery,
 ): Promise<ArticleCategoryListResult> {
   if (!canAccessArticleCategories(session)) {
-    throw new ArticleCategoryServiceError("Acces refuse.", 403);
+    throw new ArticleCategoryServiceError("Accès refusé.", 403);
   }
 
   const records = await listArticleCategories(query);
@@ -215,20 +215,20 @@ export async function getArticleCategoryByIdService(
   categoryId: number,
 ) {
   if (!canAccessArticleCategories(session)) {
-    throw new ArticleCategoryServiceError("Acces refuse.", 403);
+    throw new ArticleCategoryServiceError("Accès refusé.", 403);
   }
 
   const category = await findArticleCategoryById(categoryId);
 
   if (!category) {
     throw new ArticleCategoryServiceError(
-      "Categorie d'articles introuvable.",
+      "Catégorie d'articles introuvable.",
       404,
     );
   }
 
   if (!canViewArticleCategoryRecord(session, category)) {
-    throw new ArticleCategoryServiceError("Acces refuse.", 403);
+    throw new ArticleCategoryServiceError("Accès refusé.", 403);
   }
 
   return mapArticleCategoryToDetailDto(
@@ -241,7 +241,7 @@ export async function listArticleCategoryOptionsService(
   session: StaffSession,
 ): Promise<ArticleCategoryOptionDto[]> {
   if (!canUseArticleCategoryOptions(session)) {
-    throw new ArticleCategoryServiceError("Acces refuse.", 403);
+    throw new ArticleCategoryServiceError("Accès refusé.", 403);
   }
 
   const items = await listArticleCategoryOptions();
@@ -258,7 +258,7 @@ export async function createArticleCategoryService(
   input: ArticleCategoryMutationInput,
 ) {
   if (!canCreateArticleCategories(session)) {
-    throw new ArticleCategoryServiceError("Acces refuse.", 403);
+    throw new ArticleCategoryServiceError("Accès refusé.", 403);
   }
 
   await assertUniqueArticleCategoryInput(input);
@@ -270,7 +270,7 @@ export async function createArticleCategoryService(
     actionType: "CREATE",
     entityId: String(category.id),
     targetLabel: category.name,
-    summary: "Creation d'une categorie d'articles",
+    summary: "Création d'une catégorie d'articles",
     afterSnapshotJson: toArticleCategoryAuditSnapshot(category),
   });
 
@@ -286,14 +286,14 @@ export async function updateArticleCategoryService(
   input: ArticleCategoryMutationInput,
 ) {
   if (!canCreateArticleCategories(session)) {
-    throw new ArticleCategoryServiceError("Acces refuse.", 403);
+    throw new ArticleCategoryServiceError("Accès refusé.", 403);
   }
 
   const before = await findArticleCategoryById(categoryId);
 
   if (!before) {
     throw new ArticleCategoryServiceError(
-      "Categorie d'articles introuvable.",
+      "Catégorie d'articles introuvable.",
       404,
     );
   }
@@ -309,7 +309,7 @@ export async function updateArticleCategoryService(
     actionType: "UPDATE",
     entityId: String(category.id),
     targetLabel: category.name,
-    summary: "Mise a jour d'une categorie d'articles",
+    summary: "Mise à jour d'une catégorie d'articles",
     beforeSnapshotJson: toArticleCategoryAuditSnapshot(before),
     afterSnapshotJson: toArticleCategoryAuditSnapshot(category),
   });
@@ -329,7 +329,7 @@ export async function deleteArticleCategoryService(
 
   if (!category) {
     throw new ArticleCategoryServiceError(
-      "Categorie d'articles introuvable.",
+      "Catégorie d'articles introuvable.",
       404,
     );
   }
@@ -341,12 +341,12 @@ export async function deleteArticleCategoryService(
       ? !canForceRemoveArticleCategoryRecord(session, category)
       : !canDeleteArticleCategoryRecord(session, category)
   ) {
-    throw new ArticleCategoryServiceError("Acces refuse.", 403);
+    throw new ArticleCategoryServiceError("Accès refusé.", 403);
   }
 
   if (!forceRemove && category._count.articleLinks > 0) {
     throw new ArticleCategoryServiceError(
-      "Cette categorie est encore rattachee a des articles. Utilisez Forcer la suppression pour la detacher avant suppression.",
+      "Cette catégorie est encore rattachée à des articles. Utilisez Forcer la suppression pour la détacher avant suppression.",
       400,
     );
   }
@@ -364,8 +364,8 @@ export async function deleteArticleCategoryService(
     entityId: String(category.id),
     targetLabel: category.name,
     summary: forceRemove
-      ? `Suppression forcee d'une categorie d'articles (${result.detachedArticlesCount} article(s) detaches)`
-      : "Suppression d'une categorie d'articles",
+      ? `Suppression forcée d'une catégorie d'articles (${result.detachedArticlesCount} article(s) détaché(s))`
+      : "Suppression d'une catégorie d'articles",
     beforeSnapshotJson: toArticleCategoryAuditSnapshot(category),
     afterSnapshotJson: toArticleCategoryAuditSnapshot(result.deletedCategory),
   });

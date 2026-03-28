@@ -4,6 +4,7 @@ import {
   type ProductCategoryListQuery,
   type ProductCategoryPageSize,
   type ProductCategoryUpdateInput,
+  type ProductSubcategoryInput,
 } from "./types";
 
 export class ProductCategoryValidationError extends Error {
@@ -68,7 +69,10 @@ function parseBoolean(value: unknown, fieldName: string): boolean {
   throw new ProductCategoryValidationError(`Invalid ${fieldName}`);
 }
 
-function parseOptionalPositiveInteger(value: unknown, fieldName: string): number | null {
+function parseOptionalPositiveInteger(
+  value: unknown,
+  fieldName: string,
+): number | null {
   if (value == null || value === "") return null;
 
   const parsed =
@@ -83,6 +87,50 @@ function parseOptionalPositiveInteger(value: unknown, fieldName: string): number
   }
 
   return parsed;
+}
+
+function parseProductSubcategoryInput(
+  raw: unknown,
+  index: number,
+): ProductSubcategoryInput {
+  if (!isRecord(raw)) {
+    throw new ProductCategoryValidationError(
+      `Invalid subcategories[${index}]`,
+    );
+  }
+
+  return {
+    id: parseOptionalPositiveInteger(raw.id, `subcategories[${index}].id`),
+    name: parseRequiredString(raw.name, `subcategories[${index}].name`),
+    subtitle: parseOptionalString(raw.subtitle),
+    slug: parseRequiredString(raw.slug, `subcategories[${index}].slug`),
+    description: parseOptionalString(raw.description),
+    descriptionSeo: parseOptionalString(raw.descriptionSeo),
+    imageMediaId: parseOptionalPositiveInteger(
+      raw.imageMediaId,
+      `subcategories[${index}].imageMediaId`,
+    ),
+    sortOrder: parseOptionalInteger(
+      raw.sortOrder,
+      `subcategories[${index}].sortOrder`,
+    ),
+    isActive:
+      raw.isActive == null
+        ? true
+        : parseBoolean(raw.isActive, `subcategories[${index}].isActive`),
+  };
+}
+
+function parseSubcategories(value: unknown): ProductSubcategoryInput[] {
+  if (value == null) {
+    return [];
+  }
+
+  if (!Array.isArray(value)) {
+    throw new ProductCategoryValidationError("Invalid subcategories");
+  }
+
+  return value.map((item, index) => parseProductSubcategoryInput(item, index));
 }
 
 export function parseProductCategoryIdParam(idParam: string): number {
@@ -117,22 +165,24 @@ export function parseProductCategoryListQuery(
   return { page, pageSize, q, tree };
 }
 
-function parseProductCategoryInputBase(raw: unknown): ProductCategoryCreateInput {
+function parseProductCategoryInputBase(
+  raw: unknown,
+): ProductCategoryCreateInput {
   if (!isRecord(raw)) {
     throw new ProductCategoryValidationError("Invalid request body");
   }
 
   return {
     name: parseRequiredString(raw.name, "name"),
-    slug: parseRequiredString(raw.slug, "slug"),
     subtitle: parseOptionalString(raw.subtitle),
+    slug: parseRequiredString(raw.slug, "slug"),
     description: parseOptionalString(raw.description),
     descriptionSeo: parseOptionalString(raw.descriptionSeo),
     imageMediaId: parseOptionalPositiveInteger(raw.imageMediaId, "imageMediaId"),
     sortOrder: parseOptionalInteger(raw.sortOrder, "sortOrder"),
     isActive:
       raw.isActive == null ? true : parseBoolean(raw.isActive, "isActive"),
-    parentId: parseOptionalPositiveInteger(raw.parentId, "parentId"),
+    subcategories: parseSubcategories(raw.subcategories),
   };
 }
 

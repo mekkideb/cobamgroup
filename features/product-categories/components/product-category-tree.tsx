@@ -1,144 +1,136 @@
 "use client";
 
-import Link from "next/link";
-import {
-  ChevronDown,
-  ChevronRight,
-  Edit3,
-  Folder,
-  FolderOpen,
-} from "lucide-react";
+import { ChevronRight, Folder, FolderOpen } from "lucide-react";
 import { StaffBadge } from "@/components/staff/ui";
 import type { ProductCategoryListItemDto } from "../types";
+import { AnimatedUIButton } from "@/components/ui/custom/Buttons";
 
-export type ProductCategoryTreeNode = ProductCategoryListItemDto & {
-  children: ProductCategoryTreeNode[];
-};
+export type ProductCategoryTreeNode = ProductCategoryListItemDto;
 
-function buildExcerpt(value: string | null, maxLength = 120) {
-  const trimmed = value?.trim();
-
-  if (!trimmed) {
-    return null;
-  }
-
-  if (trimmed.length <= maxLength) {
-    return trimmed;
-  }
-
-  return `${trimmed.slice(0, maxLength - 1).trimEnd()}...`;
-}
-
-function CategoryTreeRow({
+function ProductSubcategoryRow({
   pathname,
-  node,
-  depth,
-  expandedIds,
-  onToggle,
+  category,
+  subcategory,
 }: {
   pathname: string;
-  node: ProductCategoryTreeNode;
-  depth: number;
-  expandedIds: ReadonlySet<number>;
-  onToggle: (categoryId: number) => void;
+  category: ProductCategoryTreeNode;
+  subcategory: ProductCategoryTreeNode["subcategories"][number];
 }) {
-  const hasChildren = node.children.length > 0;
-  const isExpanded = hasChildren && expandedIds.has(node.id);
-  const excerpt =
-    buildExcerpt(node.subtitle) ??
-    buildExcerpt(node.description) ??
-    buildExcerpt(node.descriptionSeo);
-  const hasImage = node.imageMediaId != null;
+  const hasImage = subcategory.imageMediaId != null;
 
   return (
-    <li className="space-y-2">
-      <div
-        className="group flex flex-wrap items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-colors hover:border-cobam-water-blue/40 hover:bg-slate-50/80"
-        style={{ marginLeft: `${depth * 22}px` }}
-      >
-        <button
-          type="button"
-          onClick={() => onToggle(node.id)}
-          disabled={!hasChildren}
-          aria-label={
-            hasChildren
-              ? isExpanded
-                ? `Replier ${node.name}`
-                : `Deplier ${node.name}`
-              : `Pas de sous-categories pour ${node.name}`
-          }
-          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-cobam-water-blue hover:text-cobam-water-blue disabled:cursor-default disabled:opacity-40"
-        >
-          {hasChildren ? (
-            isExpanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )
-          ) : (
-            <div className="h-2 w-2 rounded-full bg-slate-300" />
-          )}
-        </button>
-
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-cobam-light-bg text-cobam-dark-blue">
-            {isExpanded ? (
-              <FolderOpen className="h-5 w-5" />
-            ) : (
-              <Folder className="h-5 w-5" />
-            )}
+    <li className="flex flex-wrap items-center justify-between gap-5 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 w-fit">
+          <div className="flex items-center gap-4">
+            <ChevronRight className="h-4 w-4" />
+            <p className="truncate font-medium text-cobam-dark-blue">
+              {subcategory.name}
+            </p>
           </div>
 
-          <div className="min-w-0 space-y-1">
-            <div className="truncate font-semibold text-cobam-dark-blue">
-              {node.name}
-            </div>
-            {excerpt ? (
-              <div className="text-sm text-slate-500">{excerpt}</div>
-            ) : null}
-            <div className="truncate text-[11px] text-slate-400">
-              {node.slug}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <StaffBadge size="md" color={node.isActive ? "green" : "default"}>
-            {node.isActive ? "Active" : "Inactive"}
-          </StaffBadge>
-
-          <StaffBadge size="md" color="green" icon="package">
-            {node.productModelCount} produit{node.productModelCount > 1 ? "s" : ""}
-          </StaffBadge>
-
+        <div className="flex flex-wrap items-center gap-2">
           <StaffBadge
-            size="md"
+            size="sm"
+            color={subcategory.isActive ? "green" : "default"}
+          >
+            {subcategory.isActive ? "Active" : "Inactive"}
+          </StaffBadge>
+          <StaffBadge size="sm" color="green" icon="package">
+            {subcategory.productFamilyCount} famille
+            {subcategory.productFamilyCount > 1 ? "s" : ""}
+          </StaffBadge>
+          <StaffBadge
+            size="sm"
             color={hasImage ? "blue" : "default"}
-            icon="image"
+            icon={hasImage ? "image" : "warning"}
           >
             {hasImage ? "Image" : "Sans image"}
           </StaffBadge>
         </div>
+    </li>
+  );
+}
 
-        <Link
-          href={`${pathname}/${node.id}`}
-          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-cobam-water-blue hover:text-cobam-water-blue"
-        >
-          <Edit3 className="h-3.5 w-3.5" />
-          Voir / Modifier
-        </Link>
+function ProductCategoryRow({
+  pathname,
+  node,
+  isExpanded,
+  onToggle,
+}: {
+  pathname: string;
+  node: ProductCategoryTreeNode;
+  isExpanded: boolean;
+  onToggle: (categoryId: number) => void;
+}) {
+  const hasSubcategories = node.subcategories.length > 0;
+  const hasImage = node.imageMediaId != null;
+
+  return (
+    <li className="space-y-3">
+      <div className="flex flex-wrap justify-between items-center rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onToggle(node.id)}
+              disabled={!hasSubcategories}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-500 transition-colors hover:border-cobam-water-blue hover:text-cobam-water-blue disabled:cursor-default disabled:opacity-40"
+              aria-label={
+                hasSubcategories
+                  ? isExpanded
+                    ? `Replier ${node.name}`
+                    : `Déplier ${node.name}`
+                  : `Aucune sous-catégorie pour ${node.name}`
+              }
+            >
+              {hasSubcategories ? (
+                isExpanded ? (
+                  <FolderOpen className="h-5 w-5" />
+                ) : (
+                  <Folder className="h-5 w-5" />
+                )
+              ) : (
+                <div className="h-2 w-2 rounded-full bg-slate-300" />
+              )}
+            </button>
+
+            <h1 className="truncate text-lg font-semibold text-cobam-dark-blue">
+              {node.name}
+            </h1>
+          </div>
+            <div className="flex flex-wrap items-center gap-2">
+            <StaffBadge size="sm" color={node.isActive ? "green" : "default"}>
+              {node.isActive ? "Active" : "Inactive"}
+            </StaffBadge>
+            <StaffBadge size="sm" color="secondary" icon="folder">
+              {node.subcategoryCount} sous-catégorie
+              {node.subcategoryCount > 1 ? "s" : ""}
+            </StaffBadge>
+            <StaffBadge size="sm" color="green" icon="package">
+              {node.productFamilyCount} famille
+              {node.productFamilyCount > 1 ? "s" : ""}
+            </StaffBadge>
+            <StaffBadge
+              size="sm"
+              color={hasImage ? "blue" : "default"}
+              icon="image"
+            >
+              {hasImage ? "Image" : "Sans image"}
+            </StaffBadge>
+          <AnimatedUIButton variant="ghost" iconPosition="left" href={`${pathname}/edit?id=${node.id}`} icon="modify" >
+            Modifier
+          </AnimatedUIButton>
+            </div>
+
+
       </div>
 
-      {isExpanded ? (
-        <ul className="space-y-2 border-l border-dashed border-slate-200 pl-2">
-          {node.children.map((child) => (
-            <CategoryTreeRow
+      {isExpanded && hasSubcategories ? (
+        <ul className="space-y-2 pl-6">
+          {node.subcategories.map((subcategory) => (
+            <ProductSubcategoryRow
               pathname={pathname}
-              key={child.id}
-              node={child}
-              depth={depth + 1}
-              expandedIds={expandedIds}
-              onToggle={onToggle}
+              key={subcategory.id}
+              category={node}
+              subcategory={subcategory}
             />
           ))}
         </ul>
@@ -159,14 +151,13 @@ export function ProductCategoryTree({
   onToggle: (categoryId: number) => void;
 }) {
   return (
-    <ul className="space-y-3">
+    <ul className="space-y-4">
       {nodes.map((node) => (
-        <CategoryTreeRow
+        <ProductCategoryRow
           pathname={pathname}
           key={node.id}
           node={node}
-          depth={0}
-          expandedIds={expandedIds}
+          isExpanded={expandedIds.has(node.id)}
           onToggle={onToggle}
         />
       ))}

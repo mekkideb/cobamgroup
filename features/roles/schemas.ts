@@ -53,28 +53,28 @@ export function parseRoleMutationInput(raw: unknown): RoleMutationInput {
 
   const name = typeof raw.name === "string" ? raw.name.trim() : "";
   if (!name) {
-    throw new RoleValidationError("Le nom du role est requis.");
+    throw new RoleValidationError("Le nom du rôle est requis.");
   }
 
   const rawKey = typeof raw.key === "string" && raw.key.trim() ? raw.key : name;
   const key = slugifyRoleKey(rawKey);
   if (!key) {
-    throw new RoleValidationError("La cle du role est invalide.");
+    throw new RoleValidationError("La clé du rôle est invalide.");
   }
 
   const color = typeof raw.color === "string" ? raw.color.trim() : "";
   if (!/^#[0-9A-Fa-f]{6}$/.test(color)) {
-    throw new RoleValidationError("La couleur doit etre au format hex (#RRGGBB).");
+    throw new RoleValidationError("La couleur doit être au format hex (#RRGGBB).");
   }
 
   const priorityIndex = Number(raw.priorityIndex);
   if (!Number.isInteger(priorityIndex) || priorityIndex < 0) {
-    throw new RoleValidationError("L'ordre de priorite est invalide.");
+    throw new RoleValidationError("L'ordre de priorité est invalide.");
   }
 
   const permissions = parsePermissions(raw.permissions);
   if (permissions.length === 0) {
-    throw new RoleValidationError("Veuillez selectionner au moins une permission.");
+    throw new RoleValidationError("Veuillez sélectionner au moins une permission.");
   }
 
   return {
@@ -89,4 +89,26 @@ export function parseRoleMutationInput(raw: unknown): RoleMutationInput {
     permissions,
     isActive: typeof raw.isActive === "boolean" ? raw.isActive : true,
   };
+}
+
+export function parseRoleReorderInput(raw: unknown): string[] {
+  if (!isRecord(raw)) {
+    throw new RoleValidationError("Invalid request body");
+  }
+
+  const orderedRoleIds = Array.isArray(raw.orderedRoleIds)
+    ? raw.orderedRoleIds
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter(Boolean)
+    : [];
+
+  if (orderedRoleIds.length === 0) {
+    throw new RoleValidationError("L'ordre des rôles est invalide.");
+  }
+
+  if (new Set(orderedRoleIds).size !== orderedRoleIds.length) {
+    throw new RoleValidationError("L'ordre des rôles contient des doublons.");
+  }
+
+  return orderedRoleIds;
 }

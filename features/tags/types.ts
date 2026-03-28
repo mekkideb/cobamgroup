@@ -24,7 +24,7 @@ export type TagListItemDto = {
   name: string;
   slug: string;
   articleCount: number;
-  productModelCount: number;
+  productFamilyCount: number;
   createdAt: string;
   updatedAt: string;
 };

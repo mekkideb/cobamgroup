@@ -220,30 +220,9 @@ function StaffLayoutShell({ children }: { children: ReactNode }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isBanNoticeOpen, setIsBanNoticeOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(
-    () => {
-      if (typeof window === "undefined") {
-        return {};
-      }
-
-      try {
-        const rawValue = window.localStorage.getItem(
-          STAFF_NAV_COLLAPSE_STORAGE_KEY,
-        );
-
-        if (!rawValue) {
-          return {};
-        }
-
-        const parsed = JSON.parse(rawValue);
-
-        return typeof parsed === "object" && parsed !== null
-          ? (parsed as Record<string, boolean>)
-          : {};
-      } catch {
-        return {};
-      }
-    },
+    {},
   );
+  const [hasHydratedCollapseState, setHasHydratedCollapseState] = useState(false);
 
   const canAccessFlagMap: Record<string, Record<string, boolean>> = useMemo(
     () => ({
@@ -345,6 +324,33 @@ function StaffLayoutShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
+      const rawValue = window.localStorage.getItem(
+        STAFF_NAV_COLLAPSE_STORAGE_KEY,
+      );
+
+      if (!rawValue) {
+        setHasHydratedCollapseState(true);
+        return;
+      }
+
+      const parsed = JSON.parse(rawValue);
+
+      if (typeof parsed === "object" && parsed !== null) {
+        setCollapsedGroups(parsed as Record<string, boolean>);
+      }
+    } catch {
+      // Ignore malformed persisted collapse state.
+    } finally {
+      setHasHydratedCollapseState(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedCollapseState) {
+      return;
+    }
+
+    try {
       window.localStorage.setItem(
         STAFF_NAV_COLLAPSE_STORAGE_KEY,
         JSON.stringify(collapsedGroups),
@@ -352,7 +358,7 @@ function StaffLayoutShell({ children }: { children: ReactNode }) {
     } catch {
       // Ignore localStorage persistence failures.
     }
-  }, [collapsedGroups]);
+  }, [collapsedGroups, hasHydratedCollapseState]);
 
   const handleCloseBanNotice = useCallback(
     ({ remember }: { remember: boolean }) => {
@@ -375,8 +381,7 @@ function StaffLayoutShell({ children }: { children: ReactNode }) {
   return (
     <main className="flex min-h-screen bg-slate-50 text-slate-900">
       {/* Sidebar: narrow on mobile, normal on sm+ */}
-      <aside className="flex w-14 flex-col border-r border-slate-200 bg-white md:w-64">
-        {/* Header: show only role on mobile, email+role on sm+ */}
+      <aside className="sticky left-0 top-0 max-h-screen flex w-14 flex-col border-r border-slate-200 bg-white md:w-64 scrollbar-left">        
         <div className="border-b border-slate-200 px-2 py-3 text-[10px] text-slate-500 md:space-y-2 md:px-5 md:py-5">
           <p className="hidden md:block">
             Connecté en tant que : <strong>{displayEmail}</strong>
@@ -388,7 +393,7 @@ function StaffLayoutShell({ children }: { children: ReactNode }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-4 px-1 py-4 text-sm md:space-y-6 md:px-4 md:py-6">
+        <nav className="overflow-y-auto flex-1 space-y-4 px-1 py-4 text-sm md:space-y-6 md:px-4 md:py-6">
           {Object.values(canAccessViewMap).map((group: StaffTabGroup) => (
             <div key={group.key} className="space-y-2">
               <button

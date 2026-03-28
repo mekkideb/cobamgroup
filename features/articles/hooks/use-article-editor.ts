@@ -515,7 +515,7 @@ export function useArticleEditor(articleId: number | null) {
       setLastSavedAt(new Date());
 
       if (articleId == null) {
-        router.replace(`/espace/staff/gestion/articles/edit?id=${saved.id}`);
+        router.replace(`/espace/staff/gestion-des-articles/articles/edit?id=${saved.id}`);
       }
 
       return saved;
@@ -583,7 +583,7 @@ export function useArticleEditor(articleId: number | null) {
 
     try {
       await deleteArticleClient(articleId);
-      router.push("/espace/staff/gestion/articles");
+      router.push("/espace/staff/gestion-des-aritcles/articles");
       router.refresh();
       return true;
     } catch (err: unknown) {

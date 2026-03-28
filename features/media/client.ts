@@ -2,8 +2,12 @@
 
 import { staffApiFetch } from "@/lib/api/auth/staff/api-fetch";
 import type {
+  MediaBrowseMode,
   MediaDeleteOptions,
   MediaFileVariant,
+  MediaFolderCreateInput,
+  MediaFolderUpdateInput,
+  MediaFolderSummaryDto,
   MediaListItemDto,
   MediaListResult,
   MediaUpdateInput,
@@ -20,6 +24,9 @@ type MediaDetailResponse = ApiOk<{ media: MediaListItemDto }> | ApiFail;
 type MediaUploadResponse = ApiOk<{ media: MediaListItemDto }> | ApiFail;
 type MediaUpdateResponse = ApiOk<{ media: MediaListItemDto }> | ApiFail;
 type MediaDeleteResponse = ApiOk<Record<string, never>> | ApiFail;
+type MediaFolderCreateResponse = ApiOk<{ folder: MediaFolderSummaryDto }> | ApiFail;
+type MediaFolderUpdateResponse = ApiOk<{ folder: MediaFolderSummaryDto }> | ApiFail;
+type MediaFolderDeleteResponse = ApiOk<Record<string, never>> | ApiFail;
 
 export class MediaClientError extends Error {
   status: number;
@@ -43,6 +50,8 @@ function getErrorMessage(data: ApiFail | ApiOk<unknown> | null | undefined) {
 }
 
 function buildListParams(params: {
+  browseMode?: MediaBrowseMode;
+  folderId?: number | null;
   page?: number;
   pageSize?: number;
   q?: string;
@@ -53,8 +62,10 @@ function buildListParams(params: {
 }) {
   const search = new URLSearchParams();
 
+  search.set("browseMode", params.browseMode ?? "folders");
   if (params.page != null) search.set("page", String(params.page));
   if (params.pageSize != null) search.set("pageSize", String(params.pageSize));
+  if (params.folderId != null) search.set("folderId", String(params.folderId));
   if (params.q?.trim()) search.set("q", params.q.trim());
   if (params.kind && params.kind !== "ALL") search.set("kind", params.kind);
   if (params.status && params.status !== "all") search.set("status", params.status);
@@ -67,6 +78,8 @@ function buildListParams(params: {
 }
 
 export async function listMediaClient(params: {
+  browseMode?: MediaBrowseMode;
+  folderId?: number | null;
   page?: number;
   pageSize?: number;
   q?: string;
@@ -84,7 +97,7 @@ export async function listMediaClient(params: {
 
   if (!res.ok || !data?.ok) {
     throw new MediaClientError(
-      getErrorMessage(data) || "Erreur lors du chargement de la mediatheque",
+      getErrorMessage(data) || "Erreur lors du chargement de la médiathèque",
       res.status,
     );
   }
@@ -101,6 +114,7 @@ export async function uploadMediaClient(
   if (input.altText?.trim()) formData.set("altText", input.altText.trim());
   if (input.description?.trim()) formData.set("description", input.description.trim());
   if (input.visibility) formData.set("visibility", input.visibility);
+  if (input.folderId != null) formData.set("folderId", String(input.folderId));
 
   const res = await staffApiFetch("/api/staff/medias", {
     method: "POST",
@@ -111,7 +125,7 @@ export async function uploadMediaClient(
 
   if (!res.ok || !data?.ok || !data.media) {
     throw new MediaClientError(
-      getErrorMessage(data) || "Erreur lors de l'import du media",
+      getErrorMessage(data) || "Erreur lors de l'import du média",
       res.status,
     );
   }
@@ -128,7 +142,7 @@ export async function getMediaByIdClient(mediaId: number): Promise<MediaListItem
 
   if (!res.ok || !data?.ok || !data.media) {
     throw new MediaClientError(
-      getErrorMessage(data) || "Erreur lors du chargement du media",
+      getErrorMessage(data) || "Erreur lors du chargement du média",
       res.status,
     );
   }
@@ -152,12 +166,86 @@ export async function updateMediaClient(
 
   if (!res.ok || !data?.ok || !data.media) {
     throw new MediaClientError(
-      getErrorMessage(data) || "Erreur lors de la mise a jour du media",
+      getErrorMessage(data) || "Erreur lors de la mise à jour du média",
       res.status,
     );
   }
 
   return data.media;
+}
+
+export async function createMediaFolderClient(
+  input: MediaFolderCreateInput,
+): Promise<MediaFolderSummaryDto> {
+  const res = await staffApiFetch("/api/staff/media-folders", {
+    method: "POST",
+    auth: true,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  const data = await parseJsonSafe<MediaFolderCreateResponse>(res);
+
+  if (!res.ok || !data?.ok || !data.folder) {
+    throw new MediaClientError(
+      getErrorMessage(data) || "Erreur lors de la création du dossier",
+      res.status,
+    );
+  }
+
+  return data.folder;
+}
+
+export async function updateMediaFolderClient(
+  folderId: number,
+  input: MediaFolderUpdateInput,
+): Promise<MediaFolderSummaryDto> {
+  const res = await staffApiFetch(`/api/staff/media-folders/${folderId}`, {
+    method: "PATCH",
+    auth: true,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  const data = await parseJsonSafe<MediaFolderUpdateResponse>(res);
+
+  if (!res.ok || !data?.ok || !data.folder) {
+    throw new MediaClientError(
+      getErrorMessage(data) || "Erreur lors du déplacement du dossier",
+      res.status,
+    );
+  }
+
+  return data.folder;
+}
+
+export async function deleteMediaFolderClient(
+  folderId: number,
+  options: MediaDeleteOptions = {},
+): Promise<void> {
+  const params = new URLSearchParams();
+
+  if (options.force) {
+    params.set("force", "true");
+  }
+
+  const res = await staffApiFetch(
+    `/api/staff/media-folders/${folderId}${params.size > 0 ? `?${params.toString()}` : ""}`,
+    {
+      method: "DELETE",
+      auth: true,
+    },
+  );
+  const data = await parseJsonSafe<MediaFolderDeleteResponse>(res);
+
+  if (!res.ok || !data?.ok) {
+    throw new MediaClientError(
+      getErrorMessage(data) || "Erreur lors de la suppression du dossier",
+      res.status,
+    );
+  }
 }
 
 export async function deleteMediaClient(
@@ -181,7 +269,7 @@ export async function deleteMediaClient(
 
   if (!res.ok || !data?.ok) {
     throw new MediaClientError(
-      getErrorMessage(data) || "Erreur lors de la suppression du media",
+      getErrorMessage(data) || "Erreur lors de la suppression du média",
       res.status,
     );
   }
@@ -209,7 +297,7 @@ export async function fetchMediaBlobClient(
 
   if (!res.ok) {
     throw new MediaClientError(
-      "Impossible de charger le fichier media.",
+      "Impossible de charger le fichier média.",
       res.status,
     );
   }

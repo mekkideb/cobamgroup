@@ -137,7 +137,7 @@ async function validateRoleAssignment(
 ) {
   if (powerType === "ROOT") {
     throw new UserServiceError(
-      "Le statut Root ne peut pas etre attribue depuis l'interface.",
+      "Le statut Root ne peut pas être attribué depuis l'interface.",
       400,
     );
   }
@@ -148,18 +148,18 @@ async function validateRoleAssignment(
 
   if (powerType === "ADMIN" && roleIds.length > 0) {
     throw new UserServiceError(
-      "Les comptes Admin n'utilisent pas de roles dynamiques.",
+      "Les comptes Admin n'utilisent pas de rôles dynamiques.",
       400,
     );
   }
 
   if (roleIds.length > 0 && !hasPermission(session, PERMISSIONS.ROLES_ASSIGN_BELOW_ROLE)) {
-    throw new UserServiceError("Vous ne pouvez pas attribuer de roles.", 403);
+    throw new UserServiceError("Vous ne pouvez pas attribuer de rôles.", 403);
   }
 
   const roles = await findRolesByIds(roleIds);
   if (roles.length !== [...new Set(roleIds)].length) {
-    throw new UserServiceError("Au moins un role est introuvable ou inactif.", 400);
+    throw new UserServiceError("Au moins un rôle est introuvable ou inactif.", 400);
   }
 
   for (const role of roles) {
@@ -177,7 +177,7 @@ async function validateRoleAssignment(
       })
     ) {
       throw new UserServiceError(
-        "Vous ne pouvez attribuer qu'un role situe sous votre role effectif.",
+        "Vous ne pouvez attribuer qu'un rôle situé sous votre rôle effectif.",
         403,
       );
     }
@@ -193,7 +193,7 @@ async function assertValidAvatarMedia(avatarMediaId: number | null | undefined) 
 
   const media = await findImageMediaById(avatarMediaId);
   if (!media) {
-    throw new UserServiceError("L'avatar selectionne est introuvable ou invalide.", 400);
+    throw new UserServiceError("L'avatar sélectionné est introuvable ou invalide.", 400);
   }
 }
 
@@ -305,8 +305,8 @@ export async function updateUserProfileService(
     entityId: after.id,
     targetLabel: after.email,
     summary: isSelf
-      ? "Mise a jour du profil personnel"
-      : "Mise a jour du profil utilisateur",
+      ? "Mise à jour du profil personnel"
+      : "Mise à jour du profil utilisateur",
     beforeSnapshotJson: toUserAuditSnapshot(before),
     afterSnapshotJson: toUserAuditSnapshot(after),
   });
@@ -335,7 +335,7 @@ export async function updateUserCredentialsService(
   if (input.email) {
     const existing = await findUserByEmail(input.email);
     if (existing && existing.id !== userId) {
-      throw new UserServiceError("Email deja utilise", 400);
+      throw new UserServiceError("Email déjà utilisé", 400);
     }
   }
 
@@ -355,10 +355,10 @@ export async function updateUserCredentialsService(
     targetLabel: after.email,
     summary:
       input.email && input.password
-        ? "Mise a jour des identifiants (email + mot de passe)"
+        ? "Mise à jour des identifiants (email + mot de passe)"
         : input.email
-          ? "Mise a jour de l'email"
-          : "Mise a jour du mot de passe",
+          ? "Mise à jour de l'email"
+          : "Mise à jour du mot de passe",
     beforeSnapshotJson: toUserAuditSnapshot(before),
     afterSnapshotJson: toUserAuditSnapshot(after),
   });
@@ -379,7 +379,7 @@ export async function createUserService(
 
   const existing = await findUserByEmail(input.email);
   if (existing) {
-    throw new UserServiceError("Email deja utilise", 400);
+    throw new UserServiceError("Email déjà utilisé", 400);
   }
 
   const passwordHash = await hashPassword(input.password);
@@ -406,7 +406,7 @@ export async function createUserService(
     actorUserId: session.id,
     entityId: created.id,
     targetLabel: created.email,
-    summary: `Creation d'utilisateur (${createdDto.roleLabel})`,
+    summary: `Création d'utilisateur (${createdDto.roleLabel})`,
     actionType: "CREATE",
     afterSnapshotJson: toUserAuditSnapshot(created),
   });
@@ -421,7 +421,7 @@ export async function updateUserAccessService(
 ) {
   if (session.id === userId) {
     throw new UserServiceError(
-      "Vous ne pouvez pas modifier vos propres acces.",
+      "Vous ne pouvez pas modifier vos propres accès.",
       400,
     );
   }
@@ -459,7 +459,7 @@ export async function updateUserAccessService(
     actorUserId: session.id,
     entityId: after.id,
     targetLabel: after.email,
-    summary: `Mise a jour des acces: ${beforeDto.roleLabel} -> ${afterDto.roleLabel}`,
+    summary: `Mise à jour des accès: ${beforeDto.roleLabel} -> ${afterDto.roleLabel}`,
     beforeSnapshotJson: toUserAuditSnapshot(before),
     afterSnapshotJson: toUserAuditSnapshot(after),
   });
@@ -497,7 +497,7 @@ export async function deleteUserService(
   const authoredArticlesCount = await countArticlesByAuthor(userId);
   if (authoredArticlesCount > 0) {
     throw new UserServiceError(
-      "Impossible de supprimer ce compte car il possede des articles.",
+      "Impossible de supprimer ce compte car il possède des articles.",
       400,
     );
   }
@@ -549,7 +549,7 @@ export async function updateUserBanService(
 
   if (input.banned && !banSummary) {
     throw new UserServiceError(
-      "Veuillez selectionner au moins un motif de bannissement.",
+      "Veuillez sélectionner au moins un motif de bannissement.",
       400,
     );
   }
@@ -571,8 +571,8 @@ export async function updateUserBanService(
     entityId: after.id,
     targetLabel: after.email,
     summary: input.banned
-      ? `Bannissement du compte (${beforeDto.roleLabel}) - ${banSummary || "Motif non renseigne"}`
-      : `Reactivation du compte (${beforeDto.roleLabel})`,
+      ? `Bannissement du compte (${beforeDto.roleLabel}) - ${banSummary || "Motif non renseigné"}`
+      : `Réactivation du compte (${beforeDto.roleLabel})`,
     actionType: input.banned ? "BAN" : "UNBAN",
     beforeSnapshotJson: toUserAuditSnapshot(before),
     afterSnapshotJson: toUserAuditSnapshot(after),

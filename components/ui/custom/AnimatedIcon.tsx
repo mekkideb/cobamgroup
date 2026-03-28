@@ -6,12 +6,16 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
+  ArrowDown,
+  ArrowUp,
   BadgeCheck,
   Calendar,
   Check,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   Clock3,
   Download,
   ExternalLink,
@@ -54,6 +58,8 @@ import {
   User,
   Users,
   X,
+  Copy,
+  Ellipsis,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -70,8 +76,12 @@ export type AnimatedIconName =
   | "loader"
   | "arrow-right"
   | "arrow-left"
+  | "arrow-up"
+  | "arrow-down"
   | "chevron-right"
   | "chevron-left"
+  | "chevron-up"
+  | "chevron-down"
   | "external-link"
   | "plus"
   | "paper-plane"
@@ -117,7 +127,9 @@ export type AnimatedIconName =
   | "unlock"
   | "eye"
   | "eye-off"
-  | "badge-check";
+  | "badge-check"
+  | "copy"
+  | "ellipsis";
 
 type AnimatedIconMode = "asParent" | "asButtonChild" | "asBadgeChild";
 
@@ -138,10 +150,18 @@ function renderIconNode(
       return <ArrowRight aria-hidden="true" className={className} />;
     case "arrow-left":
       return <ArrowLeft aria-hidden="true" className={className} />;
+    case "arrow-up":
+      return <ArrowUp aria-hidden="true" className={className} />;
+    case "arrow-down":
+      return <ArrowDown aria-hidden="true" className={className} />;
     case "chevron-right":
       return <ChevronRight aria-hidden="true" className={className} />;
     case "chevron-left":
       return <ChevronLeft aria-hidden="true" className={className} />;
+    case "chevron-up":
+      return <ChevronUp aria-hidden="true" className={className} />;
+    case "chevron-down":
+      return <ChevronDown aria-hidden="true" className={className} />;
     case "external-link":
       return <ExternalLink aria-hidden="true" className={className} />;
     case "plus":
@@ -237,6 +257,10 @@ function renderIconNode(
       return <EyeOff aria-hidden="true" className={className} />;
     case "badge-check":
       return <BadgeCheck aria-hidden="true" className={className} />;
+    case "copy":
+        return <Copy aria-hidden="true" className={className} />;
+    case "ellipsis":
+      return <Ellipsis aria-hidden="true" className={className} />;
     default:
       return assertNever(icon);
   }
@@ -256,6 +280,16 @@ function getHoverVariants(icon: AnimatedIconName): Variants {
         rest: { x: 0, y: 0, rotate: 0, scale: 1 },
         hover: { x: -4, y: 0, rotate: 0, scale: 1.04 },
       };
+    case "arrow-up":
+      return {
+        rest: { x: 0, y: 0, rotate: 0, scale: 1 },
+        hover: { x: 0, y: -4, rotate: 0, scale: 1.04 },
+      };
+    case "arrow-down":
+      return {
+        rest: { x: 0, y: 0, rotate: 0, scale: 1 },
+        hover: { x: 0, y: 4, rotate: 0, scale: 1.04 },
+      };
     case "chevron-right":
       return {
         rest: { x: 0, scale: 1 },
@@ -265,6 +299,16 @@ function getHoverVariants(icon: AnimatedIconName): Variants {
       return {
         rest: { x: 0, scale: 1 },
         hover: { x: -5, scale: 1.08 },
+      };
+    case "chevron-up":
+      return {
+        rest: { y: 0, scale: 1 },
+        hover: { y: -4, scale: 1.08 },
+      };
+    case "chevron-down":
+      return {
+        rest: { y: 0, scale: 1 },
+        hover: { y: 4, scale: 1.08 },
       };
     case "plus":
       return {
@@ -377,6 +421,8 @@ function getHoverVariants(icon: AnimatedIconName): Variants {
     case "home":
     case "star":
     case "heart":
+    case "copy":
+    case "ellipsis":
       return {
         rest: { y: 0, scale: 1, rotate: 0 },
         hover: { y: -1, scale: 1.06, rotate: icon === "star" ? 12 : 0 },
@@ -402,6 +448,7 @@ export default function AnimatedIcon({
   size = "md",
   mode = "asParent",
   color = "default",
+  customColor,
   state = "default",
   className,
   spin = false,
@@ -410,6 +457,7 @@ export default function AnimatedIcon({
   size?: AnimatedUISize;
   mode?: AnimatedIconMode;
   color?: StaffColorName;
+  customColor?: string;
   state?: "default" | "hover" | "active";
   className?: string;
   spin?: boolean;
@@ -437,9 +485,14 @@ export default function AnimatedIcon({
     cn(
       "transition-colors duration-300",
       sizeClasses.sizeClass,
-      colorSet.iconColor,
+      customColor ? undefined : colorSet.iconColor,
       className,
     ),
+  );
+  const contentNode = customColor ? (
+    <span style={{ color: customColor }}>{content}</span>
+  ) : (
+    content
   );
 
   if (icon === "loader" || spin) {
@@ -453,7 +506,7 @@ export default function AnimatedIcon({
           ease: "linear",
         }}
       >
-        {content}
+        {contentNode}
       </motion.span>
     );
   }
@@ -468,7 +521,7 @@ export default function AnimatedIcon({
         transition={{ duration: 0.28, ease: "easeOut" }}
         className="inline-flex shrink-0 items-center justify-center"
       >
-        {content}
+        {contentNode}
       </motion.span>
     );
   }
@@ -479,7 +532,7 @@ export default function AnimatedIcon({
       transition={{ duration: 0.28, ease: "easeOut" }}
       className="inline-flex shrink-0 items-center justify-center"
     >
-      {content}
+      {contentNode}
     </motion.span>
   );
 }

@@ -1,11 +1,11 @@
 export const PRESET_BAN_REASON_OPTIONS = [
   {
     id: "policy_violation",
-    label: "Violation des regles internes",
+    label: "Violation des règles internes",
   },
   {
     id: "security_risk",
-    label: "Risque de securite ou activite suspecte",
+    label: "Risque de sécurité ou activité suspecte",
   },
   {
     id: "abusive_usage",
@@ -13,11 +13,11 @@ export const PRESET_BAN_REASON_OPTIONS = [
   },
   {
     id: "access_revoked",
-    label: "Acces retire par l'administration",
+    label: "Accès retiré par l'administration",
   },
   {
     id: "offboarding",
-    label: "Depart ou fin de mission",
+    label: "Départ ou fin de mission",
   },
 ] as const;
 

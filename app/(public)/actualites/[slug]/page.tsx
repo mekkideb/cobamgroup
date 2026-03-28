@@ -46,13 +46,6 @@ export default async function PublicArticleDetailPage({
     <main className="min-h-screen bg-white text-cobam-dark-blue">
       <section className="border-b border-slate-200 bg-cobam-light-bg/80">
         <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
-          <Link
-            href="/actualites"
-            className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-cobam-water-blue"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour aux actualités
-          </Link>
 
           <div className="space-y-6">
             {article.categories.length > 0 ? (

@@ -2,7 +2,12 @@
 
 import type { FormEvent } from "react";
 import PanelTable from "@/components/staff/ui/PanelTable";
-import { StaffBadge, StaffFilterBar, StaffPageHeader, StaffSelect } from "@/components/staff/ui";
+import {
+  StaffBadge,
+  StaffFilterBar,
+  StaffPageHeader,
+  StaffSelect,
+} from "@/components/staff/ui";
 import { AnimatedUIButton } from "@/components/ui/custom/Buttons";
 import { useStaffSessionContext } from "@/features/auth/client/staff-session-provider";
 import { canCreateProducts } from "@/features/products/access";
@@ -10,11 +15,12 @@ import { useProductsList } from "@/features/products/hooks/use-products-list";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50] as const;
 const columns = [
-  "Produit",
+  "Famille",
   "Marque",
-  "Categorie",
+  "Catégories",
   "Taxonomies",
-  "Etat",
+  "Cycle de vie",
+  "Visibilité",
   "Variantes",
   "Actions",
 ];
@@ -29,15 +35,39 @@ function getDescriptionPreview(description: string | null) {
     : description;
 }
 
-function getProductStatusBadge(isActive: boolean) {
-  return isActive
-    ? {
-        label: "Actif",
+function getLifecycleBadge(status: "DRAFT" | "ACTIVE" | "ARCHIVED") {
+  switch (status) {
+    case "ACTIVE":
+      return {
+        label: "Active",
         color: "green" as const,
         icon: "check-circle" as const,
+      };
+    case "ARCHIVED":
+      return {
+        label: "Archivée",
+        color: "amber" as const,
+        icon: "pause" as const,
+      };
+    case "DRAFT":
+    default:
+      return {
+        label: "Brouillon",
+        color: "default" as const,
+        icon: "modify" as const,
+      };
+  }
+}
+
+function getVisibilityBadge(visibility: "HIDDEN" | "PUBLIC") {
+  return visibility === "PUBLIC"
+    ? {
+        label: "Publique",
+        color: "blue" as const,
+        icon: "eye" as const,
       }
     : {
-        label: "Masque",
+        label: "Masquée",
         color: "default" as const,
         icon: "eye-off" as const,
       };
@@ -54,7 +84,7 @@ export default function ProductsListPage() {
     pageSize,
     search,
     brandId,
-    productCategoryId,
+    productSubcategoryId,
     options,
     isLoading,
     error,
@@ -63,7 +93,7 @@ export default function ProductsListPage() {
     canNext,
     setSearch,
     setBrandId,
-    setProductCategoryId,
+    setProductSubcategoryId,
     submitFilters,
     updatePageSize,
     goPrev,
@@ -77,15 +107,18 @@ export default function ProductsListPage() {
 
   return (
     <div className="space-y-6">
-      <StaffPageHeader eyebrow="Produits" title="Gestion des produits">
+      <StaffPageHeader
+        eyebrow="Produits"
+        title="Gestion des familles produit"
+      >
         {canCreateProduct ? (
           <AnimatedUIButton
-            href="/espace/staff/gestion-des-produits/produits/new"
+            href="/espace/staff/gestion-des-produits/produits/edit"
             variant="secondary"
             icon="plus"
             iconPosition="left"
           >
-            Creer un produit
+            Créer une famille
           </AnimatedUIButton>
         ) : null}
       </StaffPageHeader>
@@ -93,7 +126,7 @@ export default function ProductsListPage() {
       <form onSubmit={handleSubmit}>
         <StaffFilterBar
           searchValue={search}
-          searchPlaceholder="Rechercher par nom, slug, marque ou categorie..."
+          searchPlaceholder="Rechercher par nom, slug, marque ou catégorie..."
           onSearchChange={(value: string) => setSearch(value)}
         >
           <StaffSelect
@@ -107,12 +140,12 @@ export default function ProductsListPage() {
           />
 
           <StaffSelect
-            value={productCategoryId}
-            onValueChange={setProductCategoryId}
-            emptyLabel="Toutes les categories"
-            options={options.productCategories.map((option) => ({
+            value={productSubcategoryId}
+            onValueChange={setProductSubcategoryId}
+            emptyLabel="Toutes les sous-catégories"
+            options={options.productSubcategories.map((option) => ({
               value: String(option.id),
-              label: option.name,
+              label: `${option.categoryName} / ${option.name}`,
             }))}
           />
         </StaffFilterBar>
@@ -123,7 +156,7 @@ export default function ProductsListPage() {
         isLoading={isLoading}
         error={error}
         isEmpty={items.length === 0}
-        emptyMessage="Aucun produit ne correspond a ces criteres."
+        emptyMessage="Aucun produit ne correspond à ces critères."
         pagination={{
           goPrev,
           goNext,
@@ -139,33 +172,59 @@ export default function ProductsListPage() {
         }}
       >
         {items.map((product) => {
-          const statusBadge = getProductStatusBadge(product.isActive);
+          const lifecycleBadge = getLifecycleBadge(product.lifecycleStatus);
+          const visibilityBadge = getVisibilityBadge(product.visibility);
 
           return (
             <tr key={product.id} className="hover:bg-slate-50/60">
               <td className="px-4 py-3 align-top">
                 <div className="font-semibold text-cobam-dark-blue">
-                  {product.baseName}
+                  {product.name}
                 </div>
-                <div className="text-[11px] text-slate-400">{product.baseSlug}</div>
+                <div className="text-[11px] text-slate-400">{product.slug}</div>
+                {product.subtitle ? (
+                  <div className="mt-1 text-xs text-slate-500">
+                    {product.subtitle}
+                  </div>
+                ) : null}
                 <div className="mt-1 text-xs text-slate-500">
-                  {getDescriptionPreview(product.description)}
+                  {getDescriptionPreview(product.excerpt ?? product.description)}
                 </div>
               </td>
 
               <td className="px-4 py-3 align-top text-slate-600">
-                <div className="font-medium text-cobam-dark-blue">
-                  {product.brand.name}
-                </div>
-                <div className="text-[11px] text-slate-400">{product.brand.slug}</div>
+                {product.brand ? (
+                  <>
+                    <div className="font-medium text-cobam-dark-blue">
+                      {product.brand.name}
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      {product.brand.slug}
+                    </div>
+                  </>
+                ) : (
+                  <span className="text-sm text-slate-400">Aucune marque</span>
+                )}
               </td>
 
               <td className="px-4 py-3 align-top text-slate-600">
                 <div className="font-medium text-cobam-dark-blue">
-                  {product.productCategory.name}
-                </div>
-                <div className="text-[11px] text-slate-400">
-                  {product.productCategory.slug}
+                  {product.productSubcategories.length === 0 ? (
+                    <span>-</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {product.productSubcategories.map((subcategory) => (
+                        <StaffBadge
+                          key={`${product.id}-${subcategory.id}`}
+                          size="sm"
+                          color="secondary"
+                          icon="folder"
+                        >
+                          {subcategory.categoryName} / {subcategory.name}
+                        </StaffBadge>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </td>
 
@@ -176,10 +235,20 @@ export default function ProductsListPage() {
               <td className="px-4 py-3 align-top">
                 <StaffBadge
                   size="md"
-                  color={statusBadge.color}
-                  icon={statusBadge.icon}
+                  color={lifecycleBadge.color}
+                  icon={lifecycleBadge.icon}
                 >
-                  {statusBadge.label}
+                  {lifecycleBadge.label}
+                </StaffBadge>
+              </td>
+
+              <td className="px-4 py-3 align-top">
+                <StaffBadge
+                  size="md"
+                  color={visibilityBadge.color}
+                  icon={visibilityBadge.icon}
+                >
+                  {visibilityBadge.label}
                 </StaffBadge>
               </td>
 
@@ -189,12 +258,12 @@ export default function ProductsListPage() {
 
               <td className="px-4 py-3 align-top text-right">
                 <AnimatedUIButton
-                  href={`/espace/staff/gestion-des-produits/produits/${product.id}`}
+                  href={`/espace/staff/gestion-des-produits/produits/edit?id=${product.id}`}
                   variant="ghost"
                   icon="modify"
                   iconPosition="left"
                 >
-                  Voir / Modifier
+                  Modifier
                 </AnimatedUIButton>
               </td>
             </tr>

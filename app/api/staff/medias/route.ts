@@ -23,6 +23,10 @@ export async function GET(req: Request) {
     return NextResponse.json({
       ok: true,
       items: result.items,
+      currentFolder: result.currentFolder,
+      breadcrumbs: result.breadcrumbs,
+      folders: result.folders,
+      folderOptions: result.folderOptions,
       total: result.total,
       page: result.page,
       pageSize: result.pageSize,

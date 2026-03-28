@@ -80,12 +80,16 @@ export default function StaffTagInput({
   placeholder = "Tapez un tag puis espace",
   disabled = false,
   maxSuggestions = 8,
+  className,
+  id
 }: {
   value: string[];
   onChange: (value: string[]) => void;
   placeholder?: string;
   disabled?: boolean;
   maxSuggestions?: number;
+  className?: string
+  id?: string
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const requestIdRef = useRef(0);
@@ -356,11 +360,12 @@ export default function StaffTagInput({
     isFocused && (isLoadingSuggestions || visibleSuggestions.length > 0);
 
   return (
-    <div className="relative">
+    <div id={id} className="relative">
       <div
         className={cn(
           "flex min-h-12 flex-wrap items-center gap-2 rounded-2xl border border-slate-300 bg-white px-3 py-2 transition-colors",
           disabled ? "cursor-not-allowed bg-slate-100/80 opacity-70" : "focus-within:border-cobam-water-blue",
+          className
         )}
         onClick={() => {
           if (disabled) {

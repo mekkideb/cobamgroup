@@ -12,12 +12,15 @@ import PanelInput from "@/components/staff/ui/PanelInput";
 import PanelSelect from "@/components/staff/ui/PanelSelect";
 import {
   StaffBadge,
+  StaffEditorActionsPanel,
+  StaffEditorInfoPanel,
+  StaffEditorLayout,
   StaffNotice,
   StaffPageHeader,
   StaffStateCard,
+  UnsavedChangesGuard,
 } from "@/components/staff/ui";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AnimatedUIButton } from "@/components/ui/custom/Buttons";
 import { Textarea } from "@/components/ui/textarea";
 import { useStaffSessionContext } from "@/features/auth/client/staff-session-provider";
 import { canCreateBrands, canManageAnyBrands } from "@/features/brands/access";
@@ -39,7 +42,7 @@ function getShowcaseBadge(placement: BrandShowcasePlacement) {
       };
     case "REFERENCE":
       return {
-        label: "Reference",
+        label: "Référence",
         color: "indigo" as const,
         icon: "badge-check" as const,
       };
@@ -61,7 +64,7 @@ function getProductUsageBadge(enabled: boolean) {
         icon: "check-circle" as const,
       }
     : {
-        label: "Desactivee",
+        label: "Désactivée",
         color: "default" as const,
         icon: "pause" as const,
       };
@@ -96,6 +99,7 @@ function BrandEditPageContent() {
   const {
     brand,
     form,
+    isDirty,
     isLoading,
     isSaving,
     isDeleting,
@@ -144,20 +148,26 @@ function BrandEditPageContent() {
 
   const handleSave = async () => {
     if (mode === "create" && !canCreateBrand) {
-      toast.error("Acces refuse");
-      return;
+      toast.error("Accès refusé");
+      return false;
     }
 
     if (!form.name.trim() || !previewSlug) {
       toast.error("Nom et slug requis");
-      return;
+      return false;
     }
 
     const saved = await save();
 
-    if (saved && mode === "create") {
-      router.replace(`/espace/staff/gestion/marques/edit?id=${saved.id}`);
+    if (!saved) {
+      return false;
     }
+
+    if (mode === "create") {
+      router.replace(`/espace/staff/gestion-des-produits/marques/edit?id=${saved.id}`);
+    }
+
+    return true;
   };
 
   const handleDelete = async () => {
@@ -172,8 +182,8 @@ function BrandEditPageContent() {
 
     const deleted = await remove();
     if (deleted) {
-      toast.success("Marque supprimee.");
-      router.replace("/espace/staff/gestion/marques");
+      toast.success("Marque supprimée.");
+      router.replace("/espace/staff/gestion-des-produits/marques");
     }
   };
 
@@ -185,9 +195,9 @@ function BrandEditPageContent() {
     return (
       <StaffStateCard
         variant="forbidden"
-        title="Acces refuse"
-        description="Vous n'avez pas l'autorisation de creer une marque."
-        actionHref="/espace/staff/gestion/marques"
+        title="Accès refusé"
+        description="Vous n'avez pas l'autorisation de créer une marque."
+        actionHref="/espace/staff/gestion-des-produits/marques"
         actionLabel="Retour aux marques"
       />
     );
@@ -202,7 +212,7 @@ function BrandEditPageContent() {
       <StaffStateCard
         title="Erreur"
         description={error}
-        actionHref="/espace/staff/gestion/marques"
+        actionHref="/espace/staff/gestion-des-produits/marques"
         actionLabel="Retour aux marques"
       />
     );
@@ -214,130 +224,41 @@ function BrandEditPageContent() {
 
   return (
     <div className="space-y-6">
+      <UnsavedChangesGuard isDirty={isDirty} onSaveAndContinue={handleSave} />
+
       <StaffPageHeader
-        backHref="/espace/staff/gestion/marques"
+        backHref="/espace/staff/gestion-des-produits/marques"
         eyebrow="Marques"
-        title={mode === "edit" && brand ? brand.name : "Creation d'une marque"}
+        title={mode === "edit" && brand ? brand.name : "Création d'une marque"}
         icon={BadgeCheck}
       />
 
       {error ? (
         <StaffNotice
           variant="error"
-          title={
-            mode === "edit" ? "Modification impossible" : "Creation impossible"
-          }
+          title={mode === "edit" ? "Modification impossible" : "Création impossible"}
         >
           {error}
         </StaffNotice>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <Panel
-          pretitle="Edition"
-          title="Informations de la marque"
-          description={
-            mode === "edit"
-              ? "Le slug est utilise pour les futures integrations publiques et internes."
-              : "Renseignez les informations principales de cette marque."
-          }
-        >
-          <div className="grid gap-6">
-            <PanelField id="brand-name" label="Nom">
-              <PanelInput
-                id="brand-name"
-                value={form.name}
-                onChange={(event) => handleNameChange(event.target.value)}
-                placeholder="Geberit"
-                fullWidth
-              />
-            </PanelField>
+      <StaffEditorLayout
+        sidebar={
+          <>
+            <StaffEditorActionsPanel
+              mode={mode}
+              onSave={() => void handleSave()}
+              isSaving={isSaving}
+              saveDisabled={!form.name.trim() || !previewSlug}
+              onDelete={mode === "edit" && canDelete ? () => void handleDelete() : undefined}
+              isDeleting={isDeleting}
+              description="Retrouvez ici les actions principales de cette marque."
+            />
 
-            <PanelField id="brand-description" label="Description">
-              <Textarea
-                id="brand-description"
-                value={form.description}
-                onChange={(event) => setField("description", event.target.value)}
-                rows={mode === "edit" ? 8 : 7}
-                placeholder="Quelques lignes pour presenter la marque..."
-                className="min-h-[180px] rounded-2xl border-slate-300 px-4 py-3 text-base"
-              />
-            </PanelField>
-
-            <div className="grid gap-6 lg:grid-cols-2">
-              <PanelField
-                id="brand-showcase-placement"
-                label="Diffusion publique"
-                hint="Prepare si la marque doit plus tard remonter comme partenaire, comme reference, ou rester interne."
-              >
-                <PanelSelect
-                  value={form.showcasePlacement}
-                  onValueChange={(value) =>
-                    setField("showcasePlacement", value as BrandShowcasePlacement)
-                  }
-                  options={BRAND_SHOWCASE_PLACEMENT_OPTIONS.map((option) => ({
-                    value: option.value,
-                    label: option.label,
-                  }))}
-                  fullWidth
-                />
-              </PanelField>
-
-              <PanelField
-                id="brand-is-product-brand"
-                label="Usage dans les produits"
-                hint="Quand cette option est active, la marque peut etre choisie dans les formulaires produit."
-              >
-                <label
-                  htmlFor="brand-is-product-brand"
-                  className="flex min-h-12 cursor-pointer items-start gap-3 rounded-2xl border border-slate-300 bg-slate-50/60 px-4 py-3"
-                >
-                  <Checkbox
-                    id="brand-is-product-brand"
-                    checked={form.isProductBrand}
-                    onCheckedChange={(checked) =>
-                      setField("isProductBrand", checked === true)
-                    }
-                  />
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-cobam-dark-blue">
-                      Autoriser cette marque pour le catalogue produit
-                    </p>
-                    <p className="text-sm leading-6 text-slate-500">
-                      Desactivez-la pour garder la marque dans le back-office sans
-                      la proposer dans les produits.
-                    </p>
-                  </div>
-                </label>
-              </PanelField>
-            </div>
-
-            <div className="flex justify-end">
-              <AnimatedUIButton
-                type="button"
-                onClick={() => void handleSave()}
-                loading={isSaving}
-                loadingText={mode === "edit" ? "Enregistrement..." : "Creation..."}
-                variant="primary"
-                icon={mode === "edit" ? "save" : "plus"}
-              >
-                {mode === "edit" ? "Enregistrer" : "Creer la marque"}
-              </AnimatedUIButton>
-            </div>
-          </div>
-        </Panel>
-
-        <div className="flex flex-col gap-6">
-          <Panel
-            pretitle="Resume"
-            title="Resume"
-            description={
-              mode === "edit"
-                ? "Vue rapide de quelques metadonnees utiles."
-                : "Verifiez rapidement le rendu des informations."
-            }
-          >
-            <div className="space-y-4">
+            <StaffEditorInfoPanel
+              title="Aperçu"
+              description="Vérifiez rapidement le rendu et les métadonnées de cette marque."
+            >
               <MediaImageField
                 aspectRatio="4:3"
                 requireAspectRatio
@@ -397,8 +318,8 @@ function BrandEditPageContent() {
                 </div>
                 <p className="mt-2 text-sm text-slate-600">
                   {form.isProductBrand
-                    ? "La marque peut etre utilisee dans les produits."
-                    : "La marque reste interne et n'est plus proposee dans les produits."}
+                    ? "La marque peut être utilisée dans les produits."
+                    : "La marque reste interne et n'est plus proposée dans les produits."}
                 </p>
               </div>
 
@@ -415,7 +336,7 @@ function BrandEditPageContent() {
                 <>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                      Creee le
+                      Créée le
                     </p>
                     <p className="mt-1 text-sm text-slate-600">
                       {new Date(brand.createdAt).toLocaleDateString("fr-FR")}
@@ -424,7 +345,7 @@ function BrandEditPageContent() {
 
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                      Derniere mise a jour
+                      Dernière mise à jour
                     </p>
                     <p className="mt-1 text-sm text-slate-600">
                       {new Date(brand.updatedAt).toLocaleDateString("fr-FR")}
@@ -432,37 +353,91 @@ function BrandEditPageContent() {
                   </div>
                 </>
               ) : null}
-            </div>
-          </Panel>
+            </StaffEditorInfoPanel>
+          </>
+        }
+      >
+        <Panel
+          pretitle="Édition"
+          title="Informations de la marque"
+          description={
+            mode === "edit"
+              ? "Le slug est utilisé pour les futures intégrations publiques et internes."
+              : "Renseignez les informations principales de cette marque."
+          }
+        >
+          <div className="grid gap-6">
+            <PanelField id="brand-name" label="Nom">
+              <PanelInput
+                id="brand-name"
+                value={form.name}
+                onChange={(event) => handleNameChange(event.target.value)}
+                placeholder="Geberit"
+                fullWidth
+              />
+            </PanelField>
 
-          {mode === "edit" && canDelete ? (
-            <Panel
-              pretitle="Danger"
-              title="Suppression"
-              description="La suppression retire la marque de la liste staff."
-            >
-              <p className="text-sm leading-6 text-slate-500">
-                Cette action marque la ressource comme supprimee pour les futurs
-                ecrans du back-office.
-              </p>
-              <AnimatedUIButton
-                type="button"
-                onClick={() => void handleDelete()}
-                loading={isDeleting}
-                loadingText="Suppression..."
-                variant="light"
-                icon="delete"
-                iconPosition="left"
-                className="w-full border-red-200 bg-red-50 hover:border-red-300 hover:bg-red-100"
-                textClassName="text-red-700"
-                iconClassName="text-red-700"
+            <PanelField id="brand-description" label="Description">
+              <Textarea
+                id="brand-description"
+                value={form.description}
+                onChange={(event) => setField("description", event.target.value)}
+                rows={mode === "edit" ? 8 : 7}
+                placeholder="Quelques lignes pour présenter la marque..."
+                className="min-h-[180px] rounded-2xl border-slate-300 px-4 py-3 text-base"
+              />
+            </PanelField>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <PanelField
+                id="brand-showcase-placement"
+                label="Diffusion publique"
+                hint="Prépare si la marque doit plus tard remonter comme partenaire, comme référence, ou rester interne."
               >
-                Supprimer la marque
-              </AnimatedUIButton>
-            </Panel>
-          ) : null}
-        </div>
-      </div>
+                <PanelSelect
+                  value={form.showcasePlacement}
+                  onValueChange={(value) =>
+                    setField("showcasePlacement", value as BrandShowcasePlacement)
+                  }
+                  options={BRAND_SHOWCASE_PLACEMENT_OPTIONS.map((option) => ({
+                    value: option.value,
+                    label: option.label,
+                  }))}
+                  fullWidth
+                />
+              </PanelField>
+
+              <PanelField
+                id="brand-is-product-brand"
+                label="Usage dans les produits"
+                hint="Quand cette option est active, la marque peut être choisie dans les formulaires produit."
+              >
+                <label
+                  htmlFor="brand-is-product-brand"
+                  className="flex min-h-12 cursor-pointer items-start gap-3 rounded-2xl border border-slate-300 bg-slate-50/60 px-4 py-3"
+                >
+                  <Checkbox
+                    id="brand-is-product-brand"
+                    checked={form.isProductBrand}
+                    onCheckedChange={(checked) =>
+                      setField("isProductBrand", checked === true)
+                    }
+                  />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-cobam-dark-blue">
+                      Autoriser cette marque pour le catalogue produit
+                    </p>
+                    <p className="text-sm leading-6 text-slate-500">
+                      Désactivez-la pour garder la marque dans le back-office sans
+                      la proposer dans les produits.
+                    </p>
+                  </div>
+                </label>
+              </PanelField>
+            </div>
+          </div>
+        </Panel>
+      </StaffEditorLayout>
     </div>
   );
 }

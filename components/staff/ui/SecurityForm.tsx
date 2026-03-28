@@ -50,7 +50,7 @@ export default function SecurityForm({
   state,
   onChange,
   requireActualPassword = true,
-  pretitle = "Securite",
+  pretitle = "Sécurité",
   title = "Mot de passe",
   description = "Gerez les identifiants du compte.",
   onSubmit,

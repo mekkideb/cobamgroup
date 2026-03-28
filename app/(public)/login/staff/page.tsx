@@ -124,9 +124,6 @@ export default function StaffLoginPage() {
               className="object-cover"
             />
             <div className="relative z-10 h-full flex flex-col justify-end p-8 sm:p-10">
-              <p className="text-xs font-bold tracking-[0.25em] text-cobam-water-blue uppercase mb-3">
-                Accès réservé
-              </p>
               <h2
                 className="text-2xl sm:text-3xl font-bold text-white mb-2"
                 style={{ fontFamily: "var(--font-playfair), serif" }}
@@ -230,12 +227,6 @@ export default function StaffLoginPage() {
                 </AnimatedUIButton>
               </div>
 
-
-              <p className="mt-2 text-[11px] text-cobam-carbon-grey flex items-center gap-1">
-                <HelpCircle size={12} className="text-cobam-water-blue" />
-                Accès réservé aux comptes administrateurs et membres de
-                l&apos;équipe COBAM GROUP.
-              </p>
             </form>
           </div>
         </motion.section>

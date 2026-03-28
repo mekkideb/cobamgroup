@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ArticleCategoriesClientError,
   createArticleCategoryClient,
@@ -52,6 +52,9 @@ function toPayload(state: ArticleCategoryFormState): ArticleCategoryMutationInpu
 export function useArticleCategoryEditor(categoryId: number | null) {
   const [category, setCategory] = useState<ArticleCategoryDetailDto | null>(null);
   const [form, setForm] = useState<ArticleCategoryFormState>(toFormState(null));
+  const [savedForm, setSavedForm] = useState<ArticleCategoryFormState>(
+    toFormState(null),
+  );
   const [isLoading, setIsLoading] = useState(Boolean(categoryId));
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -60,8 +63,10 @@ export function useArticleCategoryEditor(categoryId: number | null) {
 
   const load = useCallback(async () => {
     if (!categoryId) {
+      const emptyForm = toFormState(null);
       setCategory(null);
-      setForm(toFormState(null));
+      setForm(emptyForm);
+      setSavedForm(emptyForm);
       setIsLoading(false);
       setError(null);
       return;
@@ -72,8 +77,10 @@ export function useArticleCategoryEditor(categoryId: number | null) {
 
     try {
       const fetched = await getArticleCategoryByIdClient(categoryId);
+      const nextForm = toFormState(fetched);
       setCategory(fetched);
-      setForm(toFormState(fetched));
+      setForm(nextForm);
+      setSavedForm(nextForm);
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -110,8 +117,10 @@ export function useArticleCategoryEditor(categoryId: number | null) {
         ? await updateArticleCategoryClient(categoryId, payload)
         : await createArticleCategoryClient(payload);
 
+      const nextForm = toFormState(saved);
       setCategory(saved);
-      setForm(toFormState(saved));
+      setForm(nextForm);
+      setSavedForm(nextForm);
       setNotice(
         categoryId
           ? "Catégorie d'articles mise à jour."
@@ -125,8 +134,8 @@ export function useArticleCategoryEditor(categoryId: number | null) {
           : err instanceof Error
             ? err.message
             : categoryId
-              ? "Erreur lors de la mise a jour de la categorie d'articles"
-              : "Erreur lors de la creation de la categorie d'articles";
+              ? "Erreur lors de la mise à jour de la catégorie d'articles"
+              : "Erreur lors de la création de la catégorie d'articles";
       setError(message);
       return null;
     } finally {
@@ -162,9 +171,15 @@ export function useArticleCategoryEditor(categoryId: number | null) {
     [categoryId],
   );
 
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(savedForm),
+    [form, savedForm],
+  );
+
   return {
     category,
     form,
+    isDirty,
     isLoading,
     isSaving,
     isDeleting,

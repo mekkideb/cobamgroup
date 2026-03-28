@@ -30,7 +30,7 @@ const tagSelect = {
   _count: {
     select: {
       articleLinks: true,
-      productModelLinks: true,
+      productFamilyLinks: true,
     },
   },
 } satisfies Prisma.TagSelect;

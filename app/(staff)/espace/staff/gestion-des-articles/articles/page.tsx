@@ -18,7 +18,7 @@ function getArticleStatusBadge(status: ArticleStatus) {
       };
     case "ARCHIVED":
       return {
-        label: "Archive",
+        label: "Archivé",
         color: "amber" as const,
         icon: "folder" as const,
       };
@@ -36,10 +36,10 @@ const PAGE_SIZE_OPTIONS = [8, 12, 16, 20];
 const columns = [
   "Titre",
   "Auteur",
-  "Categories",
+  "Catégories",
   "Statut",
   "Publié le",
-  "Mis a jour",
+  "Mis à jour",
   "Actions",
 ];
 
@@ -80,7 +80,7 @@ export default function ArticlesListPage() {
           icon="plus"
           iconPosition="left"
         >
-          Creer un article
+          Créer un article
         </AnimatedUIButton>
       </StaffPageHeader>
 
@@ -94,9 +94,9 @@ export default function ArticlesListPage() {
             onValueChange={setStatus}
             emptyLabel="Tous les statuts"
             options={[
-              { value: "PUBLISHED", label: "Publies" },
+              { value: "PUBLISHED", label: "Publiés" },
               { value: "DRAFT", label: "Brouillons" },
-              { value: "ARCHIVED", label: "Archives" },
+              { value: "ARCHIVED", label: "Archivés" },
             ]}
           />
         </StaffFilterBar>
@@ -107,7 +107,7 @@ export default function ArticlesListPage() {
         isLoading={isLoading}
         error={error}
         isEmpty={items.length === 0}
-        emptyMessage="Aucun article ne correspond a ces criteres."
+        emptyMessage="Aucun article ne correspond à ces critères."
         pagination={{
           goPrev,
           goNext,

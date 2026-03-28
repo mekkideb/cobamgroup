@@ -75,14 +75,12 @@ export default function ArticleRichTextEditor({
   return (
     <div
       className={cn(
-        "rounded-[28px] border border-slate-200 bg-white shadow-sm",
+        "border border-slate-200 bg-white shadow-sm",
         !editable && "opacity-90",
         className,
       )}
     >
-      <div className="sticky top-4 z-20 rounded-t-[28px] border-b border-slate-200 bg-slate-50/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-slate-50/85">
-        <ArticleRichTextToolbar editor={editor} />
-      </div>
+      <ArticleRichTextToolbar editor={editor} />
 
       <div className="overflow-hidden rounded-b-[28px] bg-white">
         {editor ? (

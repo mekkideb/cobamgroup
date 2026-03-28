@@ -54,7 +54,7 @@ function buildListParams(params: {
   pageSize?: number;
   q?: string;
   brandId?: number;
-  productCategoryId?: number;
+  productSubcategoryId?: number;
 }) {
   const search = new URLSearchParams();
 
@@ -62,8 +62,8 @@ function buildListParams(params: {
   if (params.pageSize != null) search.set("pageSize", String(params.pageSize));
   if (params.q?.trim()) search.set("q", params.q.trim());
   if (params.brandId != null) search.set("brandId", String(params.brandId));
-  if (params.productCategoryId != null) {
-    search.set("productCategoryId", String(params.productCategoryId));
+  if (params.productSubcategoryId != null) {
+    search.set("productSubcategoryId", String(params.productSubcategoryId));
   }
 
   return search.toString();
@@ -74,7 +74,7 @@ export async function listProductsClient(params: {
   pageSize?: number;
   q?: string;
   brandId?: number;
-  productCategoryId?: number;
+  productSubcategoryId?: number;
 }): Promise<ProductListResult> {
   const query = buildListParams(params);
 
@@ -152,7 +152,7 @@ export async function createProductClient(
 
   if (!res.ok || !data?.ok || !data.product) {
     throw new ProductsClientError(
-      getApiErrorMessage(data) || "Erreur lors de la creation du produit",
+      getApiErrorMessage(data) || "Erreur lors de la création du produit",
       res.status,
     );
   }
@@ -175,7 +175,7 @@ export async function updateProductClient(
 
   if (!res.ok || !data?.ok || !data.product) {
     throw new ProductsClientError(
-      getApiErrorMessage(data) || "Erreur lors de la mise a jour du produit",
+      getApiErrorMessage(data) || "Erreur lors de la mise à jour du produit",
       res.status,
     );
   }

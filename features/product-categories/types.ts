@@ -9,19 +9,49 @@ export type ProductCategoryListQuery = {
   tree?: boolean;
 };
 
-export type ProductCategoryCreateInput = {
+export type ProductSubcategoryInput = {
+  id?: number | null;
   name: string;
-  slug: string;
   subtitle: string | null;
+  slug: string;
   description: string | null;
   descriptionSeo: string | null;
   imageMediaId: number | null;
   sortOrder: number;
   isActive: boolean;
-  parentId: number | null;
+};
+
+export type ProductCategoryCreateInput = {
+  name: string;
+  subtitle: string | null;
+  slug: string;
+  description: string | null;
+  descriptionSeo: string | null;
+  imageMediaId: number | null;
+  sortOrder: number;
+  isActive: boolean;
+  subcategories: ProductSubcategoryInput[];
 };
 
 export type ProductCategoryUpdateInput = ProductCategoryCreateInput;
+
+export type ProductSubcategoryListItemDto = {
+  id: number;
+  categoryId: number;
+  categoryName: string;
+  categorySlug: string;
+  name: string;
+  subtitle: string | null;
+  slug: string;
+  description: string | null;
+  descriptionSeo: string | null;
+  imageMediaId: number | null;
+  sortOrder: number;
+  isActive: boolean;
+  productFamilyCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
 
 export type ProductCategoryListItemDto = {
   id: number;
@@ -33,23 +63,14 @@ export type ProductCategoryListItemDto = {
   imageMediaId: number | null;
   sortOrder: number;
   isActive: boolean;
-  parentId: number | null;
-  parentName: string | null;
-  parentSlug: string | null;
-  childCount: number;
-  productModelCount: number;
+  subcategoryCount: number;
+  productFamilyCount: number;
+  subcategories: ProductSubcategoryListItemDto[];
   createdAt: string;
   updatedAt: string;
 };
 
 export type ProductCategoryDetailDto = ProductCategoryListItemDto;
-
-export type ProductCategoryParentOptionDto = {
-  id: number;
-  name: string;
-  slug: string;
-  parentId: number | null;
-};
 
 export type ProductCategoryListResult = {
   items: ProductCategoryListItemDto[];

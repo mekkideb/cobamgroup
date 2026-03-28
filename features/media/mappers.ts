@@ -6,10 +6,18 @@ import {
   canForceRemoveMediaRecord,
   canUpdateMediaRecord,
 } from "./access";
-import type { MediaListItemDto, MediaStatsDto, MediaUsageDto } from "./types";
+import type {
+  MediaFolderListItemDto,
+  MediaFolderOptionDto,
+  MediaFolderSummaryDto,
+  MediaListItemDto,
+  MediaStatsDto,
+  MediaUsageDto,
+} from "./types";
 
 type MediaWithRelations = {
   id: bigint;
+  folderId: bigint | null;
   kind: MediaKind;
   visibility: MediaVisibility;
   storagePath: string;
@@ -37,8 +45,8 @@ type MediaWithRelations = {
     } | null;
   } | null;
   _count: {
-    productModelLinks: number;
-    productLinks: number;
+    productFamilyLinks: number;
+    productVariantLinks: number;
     brandLogoFor: number;
     productCategoryImageFor: number;
     staffProfileAvatarFor: number;
@@ -74,8 +82,8 @@ function buildUploadedByLabel(media: MediaWithRelations): string | null {
 
 function buildUsage(media: MediaWithRelations): MediaUsageDto {
   const total =
-    media._count.productModelLinks +
-    media._count.productLinks +
+    media._count.productFamilyLinks +
+    media._count.productVariantLinks +
     media._count.brandLogoFor +
     media._count.productCategoryImageFor +
     media._count.staffProfileAvatarFor +
@@ -84,8 +92,8 @@ function buildUsage(media: MediaWithRelations): MediaUsageDto {
     media._count.articleOgImageFor;
 
   return {
-    productModels: media._count.productModelLinks,
-    products: media._count.productLinks,
+    productFamilies: media._count.productFamilyLinks,
+    productVariants: media._count.productVariantLinks,
     brandLogos: media._count.brandLogoFor,
     productCategoryImages: media._count.productCategoryImageFor,
     staffAvatars: media._count.staffProfileAvatarFor,
@@ -104,6 +112,7 @@ export function mapMediaToListItemDto(
 
   return {
     id: Number(media.id),
+    folderId: media.folderId != null ? Number(media.folderId) : null,
     kind: media.kind,
     visibility: media.visibility,
     storagePath: media.storagePath,
@@ -130,6 +139,52 @@ export function mapMediaToListItemDto(
     usage,
     createdAt: media.createdAt.toISOString(),
     updatedAt: media.updatedAt.toISOString(),
+  };
+}
+
+export function mapMediaFolderSummaryDto(folder: {
+  id: bigint;
+  parentId: bigint | null;
+  name: string;
+}): MediaFolderSummaryDto {
+  return {
+    id: Number(folder.id),
+    parentId: folder.parentId != null ? Number(folder.parentId) : null,
+    name: folder.name,
+  };
+}
+
+export function mapMediaFolderListItemDto(folder: {
+  id: bigint;
+  parentId: bigint | null;
+  name: string;
+  mediaCount: number;
+  childFolderCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}): MediaFolderListItemDto {
+  return {
+    id: Number(folder.id),
+    parentId: folder.parentId != null ? Number(folder.parentId) : null,
+    name: folder.name,
+    mediaCount: folder.mediaCount,
+    childFolderCount: folder.childFolderCount,
+    createdAt: folder.createdAt.toISOString(),
+    updatedAt: folder.updatedAt.toISOString(),
+  };
+}
+
+export function mapMediaFolderOptionDto(folder: {
+  id: bigint;
+  parentId: bigint | null;
+  name: string;
+  pathLabel: string;
+}): MediaFolderOptionDto {
+  return {
+    id: Number(folder.id),
+    parentId: folder.parentId != null ? Number(folder.parentId) : null,
+    name: folder.name,
+    pathLabel: folder.pathLabel,
   };
 }
 

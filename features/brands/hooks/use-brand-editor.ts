@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BrandsClientError,
   createBrandClient,
@@ -50,6 +50,7 @@ function toPayload(state: BrandFormState): BrandCreateInput | BrandUpdateInput {
 export function useBrandEditor(brandId: number | null) {
   const [brand, setBrand] = useState<BrandDetailDto | null>(null);
   const [form, setForm] = useState<BrandFormState>(toFormState(null));
+  const [savedForm, setSavedForm] = useState<BrandFormState>(toFormState(null));
   const [isLoading, setIsLoading] = useState(Boolean(brandId));
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -58,8 +59,10 @@ export function useBrandEditor(brandId: number | null) {
 
   const load = useCallback(async () => {
     if (!brandId) {
+      const emptyForm = toFormState(null);
       setBrand(null);
-      setForm(toFormState(null));
+      setForm(emptyForm);
+      setSavedForm(emptyForm);
       setIsLoading(false);
       setError(null);
       return;
@@ -70,8 +73,10 @@ export function useBrandEditor(brandId: number | null) {
 
     try {
       const fetched = await getBrandByIdClient(brandId);
+      const nextForm = toFormState(fetched);
       setBrand(fetched);
-      setForm(toFormState(fetched));
+      setForm(nextForm);
+      setSavedForm(nextForm);
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -105,9 +110,11 @@ export function useBrandEditor(brandId: number | null) {
         ? await updateBrandClient(brandId, payload)
         : await createBrandClient(payload);
 
+      const nextForm = toFormState(saved);
       setBrand(saved);
-      setForm(toFormState(saved));
-      setNotice(brandId ? "Marque mise a jour." : "Marque creee.");
+      setForm(nextForm);
+      setSavedForm(nextForm);
+      setNotice(brandId ? "Marque mise à jour." : "Marque créée.");
       return saved;
     } catch (err: unknown) {
       const message =
@@ -116,8 +123,8 @@ export function useBrandEditor(brandId: number | null) {
           : err instanceof Error
             ? err.message
             : brandId
-              ? "Erreur lors de la mise a jour de la marque"
-              : "Erreur lors de la creation de la marque";
+              ? "Erreur lors de la mise à jour de la marque"
+              : "Erreur lors de la création de la marque";
       setError(message);
       return null;
     } finally {
@@ -149,9 +156,15 @@ export function useBrandEditor(brandId: number | null) {
     }
   }, [brandId]);
 
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(savedForm),
+    [form, savedForm],
+  );
+
   return {
     brand,
     form,
+    isDirty,
     isLoading,
     isSaving,
     isDeleting,

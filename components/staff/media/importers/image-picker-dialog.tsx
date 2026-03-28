@@ -259,6 +259,7 @@ export default function ImagePickerDialog({
 
       try {
         const result = await listMediaClient({
+          browseMode: "library",
           page: nextPage,
           pageSize: PAGE_SIZE,
           q: deferredSearch,
@@ -422,10 +423,13 @@ export default function ImagePickerDialog({
                   ) : items.length === 0 ? (
                     <PickerEmptyState
                       title="Aucune image disponible"
-                      description="Essayez une autre recherche ou importez une nouvelle image depuis l'onglet Importer."
+                      description="Essayez une autre recherche dans toute la mediatheque ou importez une nouvelle image depuis l'onglet Importer."
                     />
                   ) : (
                     <div className="space-y-4">
+                      <p className="text-xs text-slate-500">
+                        Cette bibliotheque affiche les images de tous les dossiers.
+                      </p>
                       <div className="max-h-[52vh] overflow-y-auto pr-1">
                         <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                           {items.map((item) => (

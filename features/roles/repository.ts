@@ -134,6 +134,22 @@ export async function deleteRole(roleId: string) {
   });
 }
 
+export async function reorderRoles(roleIds: string[]) {
+  return prisma.$transaction(async (tx) => {
+    for (const [index, roleId] of roleIds.entries()) {
+      await tx.role.update({
+        where: { id: BigInt(roleId) },
+        data: { priorityIndex: index * 10 },
+      });
+    }
+
+    return tx.role.findMany({
+      orderBy: [{ priorityIndex: "asc" }, { name: "asc" }],
+      select: ROLE_SELECT,
+    });
+  });
+}
+
 export async function countUsersWithRole(roleId: string) {
   return prisma.userRoleAssignment.count({
     where: {

@@ -33,9 +33,9 @@ export default function RoleSelectionPanel({
 }) {
   return (
     <Panel
-      pretitle="Acces"
-      title="Pouvoir et roles"
-      description="Choisissez le type de pouvoir et les roles dynamiques attribues a ce compte. Le type Staff donne l'acces de base au portail staff."
+      pretitle="Accès"
+      title="Pouvoir et rôles"
+      description="Choisissez le type de pouvoir et les rôles dynamiques attribués à ce compte. Le type Staff donne l'accès de base au portail staff."
     >
       <StaffField id="powerType" label="Type de pouvoir">
         <StaffSelect
@@ -57,13 +57,13 @@ export default function RoleSelectionPanel({
 
       {powerType === "STAFF" ? (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-slate-700">Roles attribues</p>
+          <p className="text-sm font-medium text-slate-700">Rôles attribués</p>
           <p className="text-xs text-slate-500">
-            Un compte staff peut rester sans role dynamique ou cumuler plusieurs roles. Le role effectif est celui avec la priorite la plus forte.
+            Un compte staff peut rester sans rôle dynamique ou cumuler plusieurs rôles. Le rôle effectif est celui avec la priorité la plus forte.
           </p>
           <div className="space-y-2">
             {options.length === 0 ? (
-              <p className="text-sm text-slate-500">Aucun role disponible.</p>
+              <p className="text-sm text-slate-500">Aucun rôle disponible.</p>
             ) : (
               options.map((role) => {
                 const checked = selectedRoleIds.includes(role.id);
@@ -85,7 +85,7 @@ export default function RoleSelectionPanel({
                         {role.name}
                       </span>
                       <span className="mt-1 block text-xs text-slate-400">
-                        Priorite {role.priorityIndex} - {role.key}
+                        Priorité {role.priorityIndex} - {role.key}
                       </span>
                     </span>
                   </label>
@@ -96,13 +96,13 @@ export default function RoleSelectionPanel({
         </div>
       ) : (
         <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
-          Le pouvoir Admin utilise automatiquement tout le catalogue de permissions regulieres. Aucun role dynamique n'est requis.
+          Le pouvoir Admin utilise automatiquement tout le catalogue de permissions régulières. Aucun rôle dynamique n'est requis.
         </div>
       )}
 
       {currentRoleLabel ? (
         <p className="text-xs text-slate-500">
-          Acces actuel : <span className="font-semibold text-slate-700">{currentRoleLabel}</span>
+          Accès actuel : <span className="font-semibold text-slate-700">{currentRoleLabel}</span>
         </p>
       ) : null}
 
